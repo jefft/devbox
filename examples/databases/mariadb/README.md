@@ -3,7 +3,6 @@
 ## mariadb Notes
 
 1. Start the mariadb server using `devbox services up`
-1. Create a database using `"mysql --socket-path=$MYSQL_UNIX_PORT --password='' < setup_db.sql"`
 1. You can now connect to the database from the command line by running `devbox run connect_db`
 
 ## Services

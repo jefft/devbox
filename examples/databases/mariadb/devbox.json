@@ -5,6 +5,12 @@
   "shell": {
     "init_hook": [],
     "scripts": {
+      "mysql": [
+        "mysql --socket=$MYSQL_UNIX_PORT --user=root --password=''"
+      ],
+      "mariadb": [
+        "mariadb --socket=$MYSQL_UNIX_PORT --user=root --password=''"
+      ],
       "connect_db": [
         "mysql -u devbox_user -p -D devbox_lamp"
       ],

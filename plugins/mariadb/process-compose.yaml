@@ -2,12 +2,16 @@ version: "0.5"
 
 processes:
   mariadb:
-    command: "echo 'Starting mysqld... check mariadb_logs for details'; mariadbd --log-error=$MYSQL_HOME/mysql.log"
+    command: "echo 'Starting mariadbd... check mariadb_logs for details'; mariadbd --log-error=$MYSQL_HOME/mysql.log"
     is_daemon: false
     shutdown:
       command: "mariadb-admin -u root shutdown"
     availability:
       restart: "always"
+    readiness_probe:
+      exec:
+        command: "mariadb-admin ping"
+      initial_delay_seconds: 2
   mariadb_logs:
     command: "tail -f $MYSQL_HOME/mysql.log"
     availability:

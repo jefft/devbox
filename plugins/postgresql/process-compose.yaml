@@ -11,3 +11,5 @@ processes:
     readiness_probe:
       exec:
         command: "pg_isready -p \"${PGPORT:-5432}\""
+      initial_delay_seconds: 2
+      period_seconds: 2

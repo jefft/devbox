@@ -11,6 +11,11 @@ processes:
     depends_on:
       mysql_logs:
         condition: "process_started"
+    readiness_probe:
+      exec:
+        command: "mysqladmin ping"
+      initial_delay_seconds: 2
+      period_seconds: 2
   mysql_logs:
     command: "tail -f $MYSQL_HOME/mysql.log"
     availability:

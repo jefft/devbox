@@ -253,8 +253,6 @@ github.com/ettle/strcase v0.2.0 h1:fGNiVF21fHXpX1niBgk0aROov1LagYsOwV/xqKDKR/Q=
 github.com/ettle/strcase v0.2.0/go.mod h1:DajmHElDSaX76ITe3/VHVyMin4LWSJN5Z909Wp+ED1A=
 github.com/f1bonacc1/go-health/v2 v2.1.6 h1:twYaFscDyYbbweStxAVyr6aPDkJ4iGDSWkIoKB6/6Lk=
 github.com/f1bonacc1/go-health/v2 v2.1.6/go.mod h1:ybZufvM5Z7kvxqkmbPP+LCeAV5GZkPm+Mq1yRCBib3E=
-github.com/f1bonacc1/process-compose v1.116.0 h1:ovMDnl/GFWJ6pNdSpi3rL7UVD2lcGRsDBT7+o0m+EWw=
-github.com/f1bonacc1/process-compose v1.116.0/go.mod h1:pKcO7HcFDZlyACrEZ2OmQ3JSgAJoNnvDwtka0CWkin4=
 github.com/fatih/color v1.19.0 h1:Zp3PiM21/9Ld6FzSKyL5c/BULoe/ONr9KlbYVOfG8+w=
 github.com/fatih/color v1.19.0/go.mod h1:zNk67I0ZUT1bEGsSGyCZYZNrHuTkJJB+r6Q9VuMi0LE=
 github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
@@ -468,6 +466,8 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
+github.com/jefft/process-compose v0.0.0-20260716065726-dcfd1f501a5c h1:Y0gLhShcypQFJN8W/WAJfdkqx2DyINk5bz0MiDcHRCE=
+github.com/jefft/process-compose v0.0.0-20260716065726-dcfd1f501a5c/go.mod h1:pKcO7HcFDZlyACrEZ2OmQ3JSgAJoNnvDwtka0CWkin4=
 github.com/jgautheron/goconst v1.7.1 h1:VpdAG7Ca7yvvJk5n8dMwQhfEZJh95kl/Hl9S1OI5Jkk=
 github.com/jgautheron/goconst v1.7.1/go.mod h1:aAosetZ5zaeC/2EfMeRswtxUFBpe2Hr7HzkgX4fanO4=
 github.com/jingyugao/rowserrcheck v1.1.1 h1:zibz55j/MJtLsjP1OF4bSdgXxwL1b+Vn7Tjzq7gFzUs=

@@ -304,3 +304,5 @@ tool (
 	github.com/golangci/golangci-lint/cmd/golangci-lint
 	mvdan.cc/gofumpt
 )
+
+replace github.com/f1bonacc1/process-compose => github.com/jefft/process-compose v0.0.0-20260716075811-ab965d956c68

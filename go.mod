@@ -163,7 +163,6 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jgautheron/goconst v1.11.0 // indirect
 	github.com/jjti/go-spancheck v0.6.5 // indirect
 	github.com/juju/errors v1.0.0 // indirect
@@ -209,7 +208,6 @@ require (
 	github.com/nunnatsa/ginkgolinter v0.24.0 // indirect
 	github.com/nwaples/rardecode/v2 v2.2.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
@@ -270,7 +268,6 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.6 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260811152304-ee035b5b010f // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
@@ -289,3 +286,5 @@ tool (
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	mvdan.cc/gofumpt
 )
+
+replace github.com/f1bonacc1/process-compose => github.com/jefft/process-compose v0.0.0-20260727053332-fc5749041095

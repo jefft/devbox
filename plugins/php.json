@@ -16,7 +16,7 @@
   "create_files": {
     "{{ .DevboxDir }}/php-fpm.conf": "php/php-fpm.conf",
     "{{ .DevboxDir }}/php.ini": "php/php.ini",
-    "{{ .DevboxDir }}/sessions": "",
+    "{{ .Virtenv }}/sessions": "",
     "{{ .Virtenv }}/process-compose.yaml": "php/process-compose.yaml",
     "{{ .Virtenv }}/flake/flake.nix": "php/flake.nix"
   }

@@ -54,7 +54,7 @@ release:
   # `name_template`, so a custom title could never survive.
   disable: true
   github:
-    owner: jetify-com
+    owner: jefft
     name: devbox
 announce:
   discord:

@@ -22,6 +22,8 @@ permissions:
 
 jobs:
   docker-image-build-push:
+    # Only run on upstream; pushes to jetpackio DockerHub org.
+    if: github.repository == 'jetify-com/devbox'
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo

@@ -52,7 +52,7 @@ release:
   # failing with a 422 conflict.
   replace_existing_artifacts: true
   github:
-    owner: jetify-com
+    owner: jefft
     name: devbox
 announce:
   discord:

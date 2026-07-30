@@ -33,6 +33,8 @@ jobs:
     if: failure() || cancelled()
     steps:
       - name: Notify jetpack.io slack of release status (only if tests fail)
+        # Non-blocking: forks won't have the Slack webhook secret.
+        continue-on-error: true
         id: slack
         uses: slackapi/slack-github-action@v3.0.3
         with:
@@ -124,6 +126,9 @@ jobs:
         with:
           go-version-file: ./go.mod
       - name: Create Sentry release
+        # Sentry is non-blocking: forks won't have the secrets, but we still
+        # want goreleaser to run and produce binaries.
+        continue-on-error: true
         uses: getsentry/action-release@v1
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -149,6 +154,8 @@ jobs:
           TELEMETRY_KEY: ${{ secrets.TELEMETRY_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       - name: Notify jetpack.io slack of release status
+        # Non-blocking: forks won't have the Slack webhook secret.
+        continue-on-error: true
         id: slack
         if: always()
         uses: slackapi/slack-github-action@v3.0.3

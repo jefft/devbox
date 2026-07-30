@@ -11,6 +11,9 @@ permissions:
   id-token: write # Needed for aws-actions/configure-aws-credentials@v6
 
 jobs:
+  check-release:
+    # Only run on upstream; uses Jetify AWS credentials and S3 bucket.
+    if: github.repository == 'jetify-com/devbox'
   # Make sure the cli-release workflow that built this tag actually succeeded
   # before we promote it to stable. The `released` event can fire even when
   # cli-release failed partway (or a release was published by other means), so

@@ -27,7 +27,8 @@ env:
     access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  upload-cache:
+    # Only run on upstream; forks don't have DEVBOX_API_TOKEN or cache access.
+    if: github.repository == 'jetify-com/devbox'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]

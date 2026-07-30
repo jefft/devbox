@@ -12,8 +12,6 @@ on:
         required: false
         default: false
         type: boolean
-  schedule:
-    - cron: "45 8 * * 4" # Create edge weekly on Thursdays.
   push:
     tags:
       - "*" # Tags that trigger a new release version

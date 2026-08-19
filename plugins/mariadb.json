@@ -1,7 +1,7 @@
 {
   "name": "mariadb",
-  "version": "0.0.5",
-  "description": "* This plugin wraps mysqld and mysql_install_db to work in your local project\n* This plugin will create a new database for your project in MYSQL_DATADIR if one doesn't exist on shell init\n* Use mysqld to manually start the server, and `mysqladmin -u root shutdown` to manually stop it",
+  "version": "0.0.6",
+  "description": "* This plugin wraps mysqld and mysql_install_db to work in your local project\n* This plugin will create a new database for your project in MYSQL_DATADIR if one doesn't exist on shell init. This DB will be started in `insecure` mode, so be sure to add a root password after creation if needed ('devbox run mariadb-admin password', then set the new password in $MYSQL_CONF's [client-admin] section).\n* Use mysqld to manually start the server, and `mysqladmin shutdown` to manually stop it",
   "env": {
     "MYSQL_BASEDIR": "{{ .DevboxProfileDefault }}",
     "MYSQL_HOME": "{{ .Virtenv }}/run",

@@ -23,7 +23,7 @@ server {
          location ~ \.php$ {
             include fastcgi.conf;
             fastcgi_split_path_info ^(.+\.php)(/.+)$;
-            fastcgi_pass 127.0.0.1:$PHPFPM_PORT;
+            fastcgi_pass unix:$PHPFPM_UNIX_SOCKET;
             fastcgi_index index.php;
         }
     }

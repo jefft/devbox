@@ -51,11 +51,15 @@ Use `devbox services start|stop php-fpm` to start PHP-FPM in the background.
 ### Environment Variables
 
 ```bash
-PHPFPM_PORT=8082
+PHPFPM_UNIX_SOCKET={PROJECT_DIR}/.devbox/virtenv/php/php-fpm.sock
 PHPFPM_ERROR_LOG_FILE={PROJECT_DIR}/.devbox/virtenv/php/php-fpm.log
 PHPFPM_PID_FILE={PROJECT_DIR}/.devbox/virtenv/php/php-fpm.pid
 PHPRC={PROJECT_DIR}/devbox.d/php/php.ini
 ```
+
+Setting `PHPFPM_PORT` (e.g. in the `env` block of `devbox.json`) switches
+php-fpm back to TCP listening on `127.0.0.1:$PHPFPM_PORT` — backward
+compatibility if an external tool connects to the port.
 
 ### Helper Files
 

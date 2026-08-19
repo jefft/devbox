@@ -34,8 +34,9 @@
               --add-flags '--basedir=$out --datadir=''$MYSQL_DATADIR --pid-file=''$MYSQL_PID_FILE --basedir=''$MYSQL_BASEDIR';
           fi
 
+          # Preferentially use [client-admin] section in MYSQL_CONF, which has 'root' user credentials
           wrapProgram $out/bin/mariadb-admin \
-            --add-flags '--defaults-file=''$MYSQL_CONF --socket=''$MYSQL_UNIX_PORT';
+            --add-flags '--defaults-group-suffix=-admin --defaults-file=''$MYSQL_CONF --socket=''$MYSQL_UNIX_PORT';
 
           wrapProgram $out/bin/mariadb \
             --add-flags '--defaults-file=''$MYSQL_CONF --socket=''$MYSQL_UNIX_PORT';

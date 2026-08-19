@@ -20,8 +20,9 @@
           wrapProgram $out/bin/mysqld_safe \
             --add-flags '--defaults-file=''$MYSQL_CONF --basedir=''$MYSQL_BASEDIR --datadir=''$MYSQL_DATADIR --pid-file=''$MYSQL_PID_FILE --socket=''$MYSQL_UNIX_PORT';
 
+          # Preferentially use [client-admin] section in MYSQL_CONF, which has 'root' user credentials
           wrapProgram $out/bin/mysqladmin \
-            --add-flags '--defaults-file=''$MYSQL_CONF --socket=''$MYSQL_UNIX_PORT';
+            --add-flags '--defaults-group-suffix=-admin --defaults-file=''$MYSQL_CONF --socket=''$MYSQL_UNIX_PORT';
 
           wrapProgram $out/bin/mysql \
             --add-flags '--defaults-file=''$MYSQL_CONF --socket=''$MYSQL_UNIX_PORT';

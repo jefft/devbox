@@ -2,12 +2,12 @@ version: "0.5"
 
 processes:
   php-fpm:
+    # Backward compatibility (see PHPFPM_PORT in php.json): if the user sets
+    # PHPFPM_PORT (e.g. in devbox.json env), an external tool may be
+    # connecting to that TCP port, so listen on 127.0.0.1:$PHPFPM_PORT
+    # instead of the unix socket. php-fpm.conf reads the listen address from
+    # PHPFPM_UNIX_SOCKET, which accepts either form.
     command: |
-      # Backward compatibility (see PHPFPM_PORT in php.json): if the user sets
-      # PHPFPM_PORT (e.g. in devbox.json env), an external tool may be
-      # connecting to that TCP port, so listen on 127.0.0.1:$PHPFPM_PORT
-      # instead of the unix socket. php-fpm.conf reads the listen address from
-      # PHPFPM_UNIX_SOCKET, which accepts either form.
       if [ -n "${PHPFPM_PORT:-}" ]; then
         export PHPFPM_UNIX_SOCKET="127.0.0.1:$PHPFPM_PORT"
       fi

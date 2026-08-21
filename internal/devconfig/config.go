@@ -192,6 +192,15 @@ func readFromFile(path string) (*Config, error) {
 		return nil, err
 	}
 	config.Root.AbsRootPath, err = filepath.Abs(path)
+	if err == nil {
+		// Resolve symlinks so the project dir is canonical regardless of the
+		// path devbox was invoked from. Nix rejects path: flake refs (e.g. the
+		// php plugin's virtenv flake) whose components traverse a symlink:
+		// "path '...' is a symlink" (jetify-com/devbox#2160).
+		if resolved, resolveErr := filepath.EvalSymlinks(config.Root.AbsRootPath); resolveErr == nil {
+			config.Root.AbsRootPath = resolved
+		}
+	}
 	return config, err
 }
 

@@ -1,0 +1,19 @@
+# Regression test for jetify-com/devbox#2160: when devbox is run from a
+# symlinked directory, the project root must be resolved to its physical path.
+# Plugins such as php replace their trigger package with a path: flake ref;
+# nix rejects any path: ref whose components traverse a symlink, so without
+# resolution the install crashes with "path '...' is a symlink".
+
+[!symlink] skip
+
+mkdir foo
+symlink bar -> foo
+cd bar
+
+exec devbox init
+exec devbox add php
+
+# The php plugin's generated virtenv flake must bake the physical path (foo),
+# not the symlinked one (bar).
+grep path:$WORK/foo/.devbox/virtenv/php/flake .devbox/virtenv/php/flake/flake.nix
+! grep path:$WORK/bar/.devbox/virtenv/php/flake .devbox/virtenv/php/flake/flake.nix

@@ -6,6 +6,8 @@ package plugin
 import (
 	"bytes"
 	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io/fs"
 	"log/slog"
@@ -35,6 +37,46 @@ var (
 	VirtenvPath    = filepath.Join(devboxHiddenDirName, "virtenv")
 	VirtenvBinPath = filepath.Join(VirtenvPath, "bin")
 )
+
+// runtimeDir returns a short, stable, per-plugin directory for ephemeral
+// runtime files (unix domain sockets, pid files). Socket paths are limited to
+// 107 chars on Linux (104 on macOS), which paths under deeply nested project
+// directories can exceed, so we place them in a per-user runtime directory
+// keyed by a hash of the project directory instead.
+//
+// The returned path is stable for a given (projectDir, pluginName, user): the
+// hash is plain SHA-256 truncated to 12 hex chars (48 bits), which is not
+// susceptible to the cachehash package's stability disclaimer.
+//
+// The directory is on tmpfs in the common case ($XDG_RUNTIME_DIR, i.e.
+// /run/user/<uid> on Linux) and may be wiped on reboot; callers must create
+// it before writing a socket or pid file (create_files entries and plugin
+// scripts do so).
+func runtimeDir(projectDir, pluginName string) string {
+	digest := sha256.Sum256([]byte(projectDir))
+	base := os.Getenv("XDG_RUNTIME_DIR")
+	if info, err := os.Stat(base); err != nil || !info.IsDir() {
+		base = os.TempDir()
+	}
+	return filepath.Join(base, "devbox", hex.EncodeToString(digest[:6]), pluginName)
+}
+
+// templateVars returns the template variables available to plugin templates
+// for the given project and plugin. Both the plugin.json render (buildConfig)
+// and the file-content render (createFile) build their maps from it, so path
+// values can never drift between the two render sites.
+func templateVars(projectDir, name string) map[string]any {
+	return map[string]any{
+		"DevboxDir":            filepath.Join(projectDir, devboxDirName, name),
+		"DevboxDirRoot":        filepath.Join(projectDir, devboxDirName),
+		"DevboxProfileDefault": filepath.Join(projectDir, nix.ProfilePath),
+		"DevboxProjectDir":     projectDir,
+		"Virtenv":              filepath.Join(projectDir, VirtenvPath, name),
+		"DataDir":              filepath.Join(projectDir, devboxHiddenDirName, "data", name),
+		"LogDir":               filepath.Join(projectDir, devboxHiddenDirName, "logs", name),
+		"RuntimeDir":           runtimeDir(projectDir, name),
+	}
+}
 
 type Config struct {
 	configfile.ConfigFile
@@ -145,17 +187,13 @@ func (m *Manager) createFile(
 		urlForInput = pkg.URLForFlakeInput()
 	}
 
+	vars := templateVars(m.ProjectDir(), name)
+	vars["PackageAttributePath"] = attributePath
+	vars["Packages"] = m.AllPackageNamesIncludingRemovedTriggerPackages()
+	vars["System"] = nix.System()
+	vars["URLForInput"] = urlForInput
 	var buf bytes.Buffer
-	if err = tmpl.Execute(&buf, map[string]any{
-		"DevboxDir":            filepath.Join(m.ProjectDir(), devboxDirName, name),
-		"DevboxDirRoot":        filepath.Join(m.ProjectDir(), devboxDirName),
-		"DevboxProfileDefault": filepath.Join(m.ProjectDir(), nix.ProfilePath),
-		"PackageAttributePath": attributePath,
-		"Packages":             m.AllPackageNamesIncludingRemovedTriggerPackages(),
-		"System":               nix.System(),
-		"URLForInput":          urlForInput,
-		"Virtenv":              filepath.Join(virtenvPath, name),
-	}); err != nil {
+	if err = tmpl.Execute(&buf, vars); err != nil {
 		return errors.WithStack(err)
 	}
 	var fileMode fs.FileMode = 0o644
@@ -183,13 +221,7 @@ func buildConfig(pkg Includable, projectDir, content string) (*Config, error) {
 		return nil, errors.WithStack(err)
 	}
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, map[string]string{
-		"DevboxProjectDir":     projectDir,
-		"DevboxDir":            filepath.Join(projectDir, devboxDirName, name),
-		"DevboxDirRoot":        filepath.Join(projectDir, devboxDirName),
-		"DevboxProfileDefault": filepath.Join(projectDir, nix.ProfilePath),
-		"Virtenv":              filepath.Join(projectDir, VirtenvPath, name),
-	}); err != nil {
+	if err = t.Execute(&buf, templateVars(projectDir, name)); err != nil {
 		return nil, errors.WithStack(err)
 	}
 

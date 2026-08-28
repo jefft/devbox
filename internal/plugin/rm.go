@@ -16,6 +16,9 @@ func Remove(projectDir string, pkgs []string) error {
 		if err := os.RemoveAll(filepath.Join(projectDir, VirtenvPath, pkg)); err != nil {
 			return errors.WithStack(err)
 		}
+		if err := os.RemoveAll(runtimeDir(projectDir, pkg)); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 	return nil
 }

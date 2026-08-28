@@ -23,7 +23,7 @@
         "initdb",
         "devbox services up -b",
         "echo 'sleep 5 second for the postgres server to initialize.' && sleep 5",
-        "cat .devbox/compose.log",
+        "cat .devbox/logs/compose.log",
         "dropdb --if-exists devbox_lapp",
         "createdb devbox_lapp",
         "psql devbox_lapp < setup_postgres_db.sql",

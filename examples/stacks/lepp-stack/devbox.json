@@ -22,7 +22,7 @@
       "init_db": "initdb",
       "run_test": [
         "mkdir -p /tmp/devbox/lepp",
-        "rm -rf .devbox/virtenv/postgresql/data",
+        "rm -rf .devbox/data/postgresql",
         "initdb",
         "devbox services up -b",
         "echo 'sleep 2 seconds for the postgres server to initialize.' && sleep 2",

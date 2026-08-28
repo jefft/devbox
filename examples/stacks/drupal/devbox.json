@@ -18,7 +18,7 @@
     "scripts": {
       "run_test": [
         "mkdir -p -m 0755 \"$(dirname \"$MYSQL_UNIX_PORT\")\"",
-        "ls -la .devbox .devbox/virtenv .devbox/virtenv/mariadb .devbox/virtenv/mariadb/data || true",
+        "ls -la .devbox .devbox/virtenv .devbox/data/mariadb .devbox/logs/mariadb || true",
         "devbox services up -b",
         "echo 'Waiting for services to start' && sleep 5",
         "./install-drupal.sh",

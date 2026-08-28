@@ -16,10 +16,13 @@ Use `devbox services start|stop [service]` to interact with services
 
 * MYSQL_BASEDIR=/<projectDir>/.devbox/nix/profile/default
 * MYSQL_HOME=/<projectDir>/.devbox/virtenv/mariadb/run
-* MYSQL_DATADIR=/<projectDir>/.devbox/virtenv/mariadb/data
-* MYSQL_UNIX_PORT=/<projectDir>/.devbox/virtenv/mariadb/run/mysql.sock
-* MYSQL_PID_FILE=/<projectDir>/.devbox/virtenv/mariadb/run/mysql.pid
+* MYSQL_DATADIR=/<projectDir>/.devbox/data/mariadb
+* MYSQL_UNIX_PORT=/$XDG_RUNTIME_DIR/devbox/<project-hash>/mariadb/mysql.sock (or the temp dir if XDG_RUNTIME_DIR is unset)
+* MYSQL_PID_FILE=/$XDG_RUNTIME_DIR/devbox/<project-hash>/mariadb/mysql.pid
 
 To show this information, run `devbox info mariadb`
 
-Note that the `.sock` filepath can only be maximum 100 characters long. You can point to a different path by setting the `MYSQL_UNIX_PORT` env variable in your `devbox.json`.
+The default socket path lives outside the project in a short per-user runtime
+directory, so it stays under the ~100-character unix socket limit even in
+deeply nested projects. You can still point to a different path by setting the
+`MYSQL_UNIX_PORT` env variable in your `devbox.json`.

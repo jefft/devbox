@@ -2,7 +2,7 @@ version: "0.5"
 
 processes:
   mariadb:
-    command: "echo 'Starting mariadbd... check mariadb_logs for details'; mariadbd --log-error=$MYSQL_HOME/mysql.log"
+    command: "mkdir -p -m 700 \"$(dirname \"$MYSQL_UNIX_PORT\")\"; echo 'Starting mariadbd... check mariadb_logs for details'; mariadbd --log-error={{ .LogDir }}/mysql.log"
     is_daemon: false
     shutdown:
       command: "mariadb-admin -u root shutdown"
@@ -13,6 +13,6 @@ processes:
         command: "mariadb-admin ping"
       initial_delay_seconds: 2
   mariadb_logs:
-    command: "tail -f $MYSQL_HOME/mysql.log"
+    command: "tail -f {{ .LogDir }}/mysql.log"
     availability:
       restart: "always"

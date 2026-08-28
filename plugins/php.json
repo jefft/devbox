@@ -1,16 +1,16 @@
 {
   "name": "php",
-  "version": "0.0.5",
-  "description": "PHP is compiled with default extensions. If you would like to use non-default extensions you can add them with devbox add php81Extensions.{extension} . For example, for the memcache extension you can do `devbox add php81Extensions.memcached`.\n\nPHP-FPM listens on a unix socket rather than TCP (cf. the mariadb plugin's MYSQL_UNIX_PORT). Use $PHPFPM_UNIX_SOCKET to change the socket path; the default is .devbox/virtenv/php/php-fpm.sock. Note that unix socket paths are limited to ~107 characters.\n\nBackward compatibility: if you set $PHPFPM_PORT (e.g. in the env block of devbox.json), php-fpm listens on TCP 127.0.0.1:$PHPFPM_PORT instead of the unix socket, so external tools that connect to the port keep working.",
+  "version": "0.0.7",
+  "description": "PHP is compiled with default extensions. If you would like to use non-default extensions you can add them with devbox add php81Extensions.{extension} . For example, for the memcache extension you can do `devbox add php81Extensions.memcached`.\n\nPHP-FPM listens on a unix socket rather than TCP (cf. the mariadb plugin's MYSQL_UNIX_PORT). Use $PHPFPM_UNIX_SOCKET to change the socket path; the default is {{ .RuntimeDir }}/php-fpm.sock, a short per-user runtime path outside the project. Note that unix socket paths are limited to ~107 characters.\n\nBackward compatibility: if you set $PHPFPM_PORT (e.g. in the env block of devbox.json), php-fpm listens on TCP 127.0.0.1:$PHPFPM_PORT instead of the unix socket, so external tools that connect to the port keep working.",
   "packages": [
     "path:{{ .Virtenv }}/flake",
     "path:{{ .Virtenv }}/flake#composer"
   ],
   "__remove_trigger_package": true,
   "env": {
-    "PHPFPM_ERROR_LOG_FILE": "{{ .Virtenv }}/php-fpm.log",
-    "PHPFPM_PID_FILE": "{{ .Virtenv }}/php-fpm.pid",
-    "PHPFPM_UNIX_SOCKET": "{{ .Virtenv }}/php-fpm.sock",
+    "PHPFPM_ERROR_LOG_FILE": "{{ .LogDir }}/php-fpm.log",
+    "PHPFPM_PID_FILE": "{{ .RuntimeDir }}/php-fpm.pid",
+    "PHPFPM_UNIX_SOCKET": "{{ .RuntimeDir }}/php-fpm.sock",
     "PHPRC": "{{ .DevboxDir }}",
     "PHPFPM_SESSIONDIR": "{{ .Virtenv }}/sessions"
   },
@@ -18,6 +18,8 @@
     "{{ .DevboxDir }}/php-fpm.conf": "php/php-fpm.conf",
     "{{ .DevboxDir }}/php.ini": "php/php.ini",
     "{{ .Virtenv }}/sessions": "",
+    "{{ .RuntimeDir }}": "",
+    "{{ .LogDir }}": "",
     "{{ .Virtenv }}/process-compose.yaml": "php/process-compose.yaml",
     "{{ .Virtenv }}/flake/flake.nix": "php/flake.nix"
   }

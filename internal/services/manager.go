@@ -23,10 +23,17 @@ import (
 )
 
 const (
-	processComposeLogfile         = ".devbox/compose.log"
-	processComposeInternalLogfile = ".devbox/process-compose.log"
+	processComposeLogfile         = ".devbox/logs/compose.log"
+	processComposeInternalLogfile = ".devbox/logs/process-compose.log"
 	fileLockTimeout               = 5 * time.Second
 )
+
+// ensureLogsDir creates the project's .devbox/logs directory, where devbox
+// writes process-compose logs. It may not exist in projects whose plugins
+// don't already create it.
+func ensureLogsDir(projectDir string) error {
+	return errors.WithStack(os.MkdirAll(filepath.Join(projectDir, filepath.Dir(processComposeLogfile)), 0o755))
+}
 
 type instance struct {
 	Pid  int `json:"pid"`
@@ -117,7 +124,10 @@ func StartProcessManager(
 		return fmt.Errorf("process-compose is already running. To stop it, run `devbox services stop`")
 	}
 
-	// Get the file and lock it right at the start
+	// The log files live in .devbox/logs, which may not exist yet.
+	if err := ensureLogsDir(projectDir); err != nil {
+		return err
+	}
 
 	configFile, err := openGlobalConfigFile()
 	if err != nil {

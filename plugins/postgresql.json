@@ -1,6 +1,6 @@
 {
     "name": "postgresql",
-    "version": "0.0.2",
+    "version": "0.0.4",
     "description": "To initialize the database run `initdb`.",
     "packages": {
         "glibcLocales": {
@@ -9,11 +9,18 @@
         }
     },
     "env": {
-        "PGDATA": "{{ .Virtenv }}/data",
-        "PGHOST": "{{ .Virtenv }}"
+        "PGDATA": "{{ .DataDir }}",
+        "PGHOST": "{{ .RuntimeDir }}"
     },
     "create_files": {
-        "{{ .Virtenv }}/data": "",
-        "{{ .Virtenv }}/process-compose.yaml": "postgresql/process-compose.yaml"
+        "{{ .DataDir }}": "",
+        "{{ .RuntimeDir }}": "",
+        "{{ .Virtenv }}/process-compose.yaml": "postgresql/process-compose.yaml",
+        "{{ .Virtenv }}/setup_db.sh": "postgresql/setup_db.sh"
+    },
+    "shell": {
+        "init_hook": [
+            "bash \"{{ .Virtenv }}/setup_db.sh\""
+        ]
     }
 }

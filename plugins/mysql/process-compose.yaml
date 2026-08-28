@@ -2,7 +2,7 @@ version: "0.5"
 
 processes:
   mysql:
-    command: "echo 'Starting mysqld... check mysql_logs for details'; mysqld --log-error=$MYSQL_HOME/mysql.log"
+    command: "mkdir -p -m 700 \"$(dirname \"$MYSQL_UNIX_PORT\")\"; echo 'Starting mysqld... check mysql_logs for details'; mysqld --log-error={{ .LogDir }}/mysql.log"
     is_daemon: false
     shutdown:
       command: "mysqladmin -u root shutdown"
@@ -16,6 +16,6 @@ processes:
         command: "mysqladmin ping"
       initial_delay_seconds: 2
   mysql_logs:
-    command: "tail -f $MYSQL_HOME/mysql.log"
+    command: "tail -f {{ .LogDir }}/mysql.log"
     availability:
       restart: "always"

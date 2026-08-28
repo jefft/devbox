@@ -8,6 +8,7 @@ processes:
     # instead of the unix socket. php-fpm.conf reads the listen address from
     # PHPFPM_UNIX_SOCKET, which accepts either form.
     command: |
+      mkdir -p -m 700 "$(dirname "$PHPFPM_UNIX_SOCKET")"
       if [ -n "${PHPFPM_PORT:-}" ]; then
         export PHPFPM_UNIX_SOCKET="127.0.0.1:$PHPFPM_PORT"
       fi

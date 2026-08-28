@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"text/tabwriter"
+
+	"github.com/pkg/errors"
 
 	"go.jetify.com/devbox/internal/boxcli/usererr"
 	"go.jetify.com/devbox/internal/devbox/devopt"
@@ -271,7 +274,16 @@ func (d *Devbox) StartProcessManager(
 // defaults for the `devbox services` scenario.
 func (d *Devbox) runDevboxServicesScript(ctx context.Context, cmdArgs []string) error {
 	cmdArgs = append([]string{"services"}, cmdArgs...)
-	return d.RunScript(ctx, devopt.EnvOptions{}, "devbox", cmdArgs)
+	exe, err := os.Executable()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	// Re-exec ourselves by absolute path, NOT via the bare name "devbox": the
+	// command runs inside the devbox environment, where the project's PATH may
+	// put a different devbox binary first (e.g. a devbox.d/bin/devbox symlink
+	// pinned to an older version), which would then perform the actual
+	// process-compose launch with its own, possibly incompatible, behavior.
+	return d.RunScript(ctx, devopt.EnvOptions{}, strconv.Quote(exe), cmdArgs)
 }
 
 func (d *Devbox) ShowProcessComposePort(ctx context.Context, writer io.Writer) error {

@@ -1,0 +1,26 @@
+# Two project process-compose files defining the same service error out
+# instead of silently overriding each other.
+
+exec devbox init
+
+! exec devbox services ls
+stderr 'defined by two project process-compose files'
+
+-- devbox.json --
+{
+  "include": ["inner"]
+}
+-- process-compose.yml --
+version: "0.5"
+processes:
+  dup:
+    command: "sleep infinity"
+-- inner/devbox.json --
+{
+  "name": "inner"
+}
+-- inner/process-compose.yml --
+version: "0.5"
+processes:
+  dup:
+    command: "sleep infinity"

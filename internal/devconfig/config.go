@@ -1,6 +1,7 @@
 package devconfig
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,10 +16,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"github.com/samber/lo/mutable"
+	"go.jetify.com/devbox/internal/boxcli/usererr"
 	"go.jetify.com/devbox/internal/build"
 	"go.jetify.com/devbox/internal/cachehash"
 	"go.jetify.com/devbox/internal/devbox/shellcmd"
 	"go.jetify.com/devbox/internal/devconfig/configfile"
+	"go.jetify.com/devbox/internal/devpkg"
 	"go.jetify.com/devbox/internal/lock"
 	"go.jetify.com/devbox/internal/plugin"
 )
@@ -39,7 +42,9 @@ const errNotDirectory = syscall.ENOTDIR
 type Config struct {
 	Root configfile.ConfigFile
 
-	pluginData *plugin.PluginOnlyData // pointer by design, to allow for nil
+	// Source is the includable that produced this config; nil for the root
+	// config of a project.
+	Source plugin.Includable
 
 	included []*Config
 }
@@ -234,7 +239,95 @@ func loadBytes(b []byte) (*Config, error) {
 }
 
 func (c *Config) LoadRecursive(lockfile *lock.File) error {
-	return c.loadRecursive(lockfile, map[string]bool{}, "" /*cyclePath*/)
+	if err := c.loadRecursive(lockfile, map[string]bool{}, "" /*cyclePath*/); err != nil {
+		return err
+	}
+	return c.validateIncludeTree()
+}
+
+// validateIncludeTree enforces invariants that are only checkable once the
+// whole include tree is loaded: trigger-package removal is reserved for
+// built-in plugins, nixpkgs pins must agree with the root, and no two
+// distinct includables may share a canonical name.
+func (c *Config) validateIncludeTree() error {
+	type includeInfo struct {
+		key            string
+		hasCreateFiles bool
+		cfg            *Config
+	}
+	rootPinned := c.Root.NixPkgsCommitHash()
+	canonNames := map[string]includeInfo{} // CanonicalName -> source info
+	var walk func(c *Config) error
+	walk = func(c *Config) error {
+		if c.Root.RemoveTriggerPackage {
+			if _, ok := c.Source.(*devpkg.Package); !ok {
+				return usererr.New(
+					"__remove_trigger_package in %s is only valid for built-in plugins",
+					c.Root.AbsRootPath)
+			}
+		}
+		if pinned := c.Root.NixPkgsCommitHash(); pinned != "" &&
+			rootPinned != "" && pinned != rootPinned {
+			return usererr.New(
+				"%s pins nixpkgs %q but the project pins %q",
+				c.Root.AbsRootPath, pinned, rootPinned)
+		}
+		name := c.Source.CanonicalName()
+		key := c.Source.LockfileKey()
+		hasCreateFiles := len(c.Root.CreateFiles) > 0
+		if prev, ok := canonNames[name]; ok && prev.key != key &&
+			prev.hasCreateFiles && hasCreateFiles &&
+			!sameCreateFiles(prev.cfg, c) {
+			return usererr.New(
+				"two different includes named %q both create files and would "+
+					"collide in the same directory: %q and %q",
+				name, prev.key, key)
+		}
+		canonNames[name] = includeInfo{key: key, hasCreateFiles: hasCreateFiles, cfg: c}
+		for _, i := range c.included {
+			if err := walk(i); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	for _, i := range c.included {
+		if err := walk(i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// sameCreateFiles reports whether two includables that share a canonical name
+// would materialize identical files into the shared virtenv directory. Two
+// refs of the same plugin (for example different branches) are allowed to
+// coexist; two genuinely different configs must not silently overwrite each
+// other's files.
+func sameCreateFiles(a, b *Config) bool {
+	if len(a.Root.CreateFiles) != len(b.Root.CreateFiles) {
+		return false
+	}
+	for dest, contentPathA := range a.Root.CreateFiles {
+		contentPathB, ok := b.Root.CreateFiles[dest]
+		if !ok {
+			return false
+		}
+		if contentPathA == "" || contentPathB == "" {
+			if contentPathA != contentPathB {
+				return false
+			}
+			continue
+		}
+		aContent, errA := a.Source.FileContent(contentPathA)
+		bContent, errB := b.Source.FileContent(contentPathB)
+		if errA != nil || errB != nil || !bytes.Equal(aContent, bContent) {
+			// Unreadable or differing content is treated as a collision so
+			// we never silently merge files we can't prove are identical.
+			return false
+		}
+	}
+	return true
 }
 
 // loadRecursive loads all the included plugins and their included plugins, etc.
@@ -264,7 +357,13 @@ func (c *Config) loadRecursive(
 		}
 		seen[pluginConfig.Source.Hash()] = true
 
-		includable := createIncludableFromPluginConfig(pluginConfig)
+		includable := &Config{
+			Root:   pluginConfig.ConfigFile,
+			Source: pluginConfig.Source,
+		}
+		if localPlugin, ok := pluginConfig.Source.(*plugin.LocalPlugin); ok {
+			includable.Root.AbsRootPath = localPlugin.Path()
+		}
 
 		if err := includable.loadRecursive(
 			lockfile, maps.Clone(seen), newCyclePath); err != nil {
@@ -284,8 +383,8 @@ func (c *Config) loadRecursive(
 
 	for _, builtIn := range builtIns {
 		includable := &Config{
-			Root:       builtIn.ConfigFile,
-			pluginData: &builtIn.PluginOnlyData,
+			Root:   builtIn.ConfigFile,
+			Source: builtIn.Source,
 		}
 		newCyclePath := fmt.Sprintf("%s -> %s", cyclePath, builtIn.Source.LockfileKey())
 		if err := includable.loadRecursive(
@@ -303,18 +402,49 @@ func (c *Config) PackageMutator() *configfile.PackagesMutator {
 	return &c.Root.PackagesMutator
 }
 
-func (c *Config) IncludedPluginConfigs() []*plugin.Config {
+// IncludedConfigs returns a plugin.Config for every includable in this
+// config's include tree, excluding the root config itself. Configs deeper in
+// the tree come first.
+func (c *Config) IncludedConfigs() []*plugin.Config {
 	configs := []*plugin.Config{}
 	for _, i := range c.included {
-		configs = append(configs, i.IncludedPluginConfigs()...)
-	}
-	if c.pluginData != nil {
+		configs = append(configs, i.IncludedConfigs()...)
 		configs = append(configs, &plugin.Config{
-			ConfigFile:     c.Root,
-			PluginOnlyData: *c.pluginData,
+			ConfigFile: i.Root,
+			Source:     i.Source,
 		})
 	}
 	return configs
+}
+
+// EnvFromConfigs returns every config file in the include tree, including
+// the root, innermost first, so env_from can be applied with provenance.
+func (c *Config) EnvFromConfigs() []*configfile.ConfigFile {
+	configs := []*configfile.ConfigFile{}
+	for _, i := range c.included {
+		configs = append(configs, i.EnvFromConfigs()...)
+	}
+	return append(configs, &c.Root)
+}
+
+// LocalProjectDirs returns the directory of the root config and of every
+// local-path include in the include tree, innermost first, so user services
+// (root-level process-compose files) can be applied with provenance.
+// Remote includes (git, github, nix packages) have no checked-out project
+// directory and are skipped: their services reach the project through
+// create_files instead.
+func (c *Config) LocalProjectDirs() []string {
+	dirs := []string{}
+	for _, i := range c.included {
+		dirs = append(dirs, i.LocalProjectDirs()...)
+	}
+	switch src := c.Source.(type) {
+	case nil:
+		dirs = append(dirs, filepath.Dir(c.Root.AbsRootPath))
+	case *plugin.LocalPlugin:
+		dirs = append(dirs, filepath.Dir(src.Path()))
+	}
+	return dirs
 }
 
 // Returns all packages including those from included plugins.
@@ -330,8 +460,8 @@ func (c *Config) Packages(
 
 	for _, i := range c.included {
 		packages = append(packages, i.Packages(includeRemovedTriggerPackages)...)
-		if i.pluginData.RemoveTriggerPackage && !includeRemovedTriggerPackages {
-			packagesToRemove[i.pluginData.Source.LockfileKey()] = true
+		if i.Root.RemoveTriggerPackage && !includeRemovedTriggerPackages {
+			packagesToRemove[i.Source.LockfileKey()] = true
 		}
 	}
 
@@ -423,17 +553,6 @@ func (c *Config) IsJetifyCloudEnvFrom() bool {
 		}
 	}
 	return c.Root.IsJetifyCloudEnvFrom()
-}
-
-func createIncludableFromPluginConfig(pluginConfig *plugin.Config) *Config {
-	includable := &Config{
-		Root:       pluginConfig.ConfigFile,
-		pluginData: &pluginConfig.PluginOnlyData,
-	}
-	if localPlugin, ok := pluginConfig.Source.(*plugin.LocalPlugin); ok {
-		includable.Root.AbsRootPath = localPlugin.Path()
-	}
-	return includable
 }
 
 func OSExpandIfPossible(env, existingEnv map[string]string) map[string]string {

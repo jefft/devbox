@@ -5,7 +5,6 @@ package plugin
 
 import (
 	"bytes"
-	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -78,19 +77,13 @@ func templateVars(projectDir, name string) map[string]any {
 	}
 }
 
+// Config is a resolved plugin or project fragment: a unified devbox config
+// plus the includable source it was loaded from.
 type Config struct {
 	configfile.ConfigFile
-	PluginOnlyData
-}
 
-type PluginOnlyData struct {
-	CreateFiles           map[string]string `json:"create_files"`
-	DeprecatedDescription string            `json:"readme"`
-	// If true, we remove the package that triggered this plugin from the environment
-	// Useful when we want to replace with flake
-	RemoveTriggerPackage bool   `json:"__remove_trigger_package,omitempty"`
-	Version              string `json:"version"`
-	// Source is the includable that triggered this plugin. There are two ways to include a plugin:
+	// Source is the includable that triggered this config. There are two ways
+	// a config is included:
 	// 1. Built-in plugins are triggered by packages (See plugins.builtInMap)
 	// 2. Plugins can be added via the "include" field in devbox.json or plugin.json
 	Source Includable
@@ -214,7 +207,7 @@ func (m *Manager) createFile(
 
 // buildConfig returns a plugin.Config
 func buildConfig(pkg Includable, projectDir, content string) (*Config, error) {
-	cfg := &Config{PluginOnlyData: PluginOnlyData{Source: pkg}}
+	cfg := &Config{Source: pkg}
 	name := pkg.CanonicalName()
 	t, err := template.New(name + "-template").Parse(content)
 	if err != nil {
@@ -287,5 +280,5 @@ func (c *Config) Description() string {
 	if c == nil {
 		return ""
 	}
-	return cmp.Or(c.ConfigFile.Description, c.DeprecatedDescription)
+	return c.ConfigFile.Description
 }

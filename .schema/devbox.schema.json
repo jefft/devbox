@@ -2,19 +2,23 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "$id": "https://github.com/jetify-com/devbox",
     "title": "Devbox json definition",
-    "description": "Defines fields and acceptable values of devbox.json",
+    "description": "Defines fields and acceptable values of devbox.json and plugin descriptors. Both share one schema: a plugin descriptor is a devbox config that additionally requires name, version, and description fields, and may define create_files.",
     "type": "object",
     "properties": {
         "$schema": {
-            "description": "The schema version of this devbox.json file.",
+            "description": "The schema version of this config file.",
             "type": "string"
         },
         "name": {
-            "description": "The name of the Devbox development environment.",
+            "description": "The name of the config. Required for plugin descriptors.",
+            "type": "string"
+        },
+        "version": {
+            "description": "The version of the plugin. Required for plugin descriptors.",
             "type": "string"
         },
         "description": {
-            "description": "A description of the Devbox development environment.",
+            "description": "A description of the config. Required for plugin descriptors. This will automatically display when the user first installs the plugin, or runs `devbox info`.",
             "type": "string"
         },
         "packages": {
@@ -86,12 +90,22 @@
             ]
         },
         "env": {
-            "description": "List of additional environment variables to be set in the Devbox environment. Values containing $PATH or $PWD will be expanded. No other variable expansion or command substitution will occur.",
+            "description": "List of additional environment variables to be set in the Devbox environment. Values containing $PATH or $PWD will be expanded. No other variable expansion or command substitution will occur. Environment variables in an included config are overridden by the including config.",
             "type": "object",
             "patternProperties": {
                 ".*": {
                     "type": "string",
                     "description": "Value of the environment variable."
+                }
+            }
+        },
+        "create_files": {
+            "type": "object",
+            "description": "List of files to create in the user's project directory when the config is activated. The key points to the file path where the file will be created. The value points to the default file that should be copied to that location.",
+            "patternProperties": {
+                ".*": {
+                    "type": "string",
+                    "description": "Contents of the file."
                 }
             }
         },
@@ -140,10 +154,10 @@
             }
         },
         "include": {
-            "description": "List of additional plugins to activate within your devbox shell",
+            "description": "List of additional configs to activate within your devbox shell: plugin descriptors, or other projects referenced by directory path or devbox.json path.",
             "type": "array",
             "items": {
-                "description": "Name of the plugin to activate.",
+                "description": "Name of the config to activate.",
                 "type": "string"
             }
         },

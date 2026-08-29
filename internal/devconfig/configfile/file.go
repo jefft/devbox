@@ -60,7 +60,24 @@ type ConfigFile struct {
 	// https:// for remote files
 	// plugin: for built-in plugins
 	// This is a similar format to nix inputs
+	// Reserved to allow including other config files. Proposed format is:
+	// path: for local files
+	// https:// for remote files
+	// plugin: for built-in plugins
+	// This is a similar format to nix inputs
 	Include []string `json:"include,omitempty"`
+
+	// CreateFiles maps destinations (possibly template-rendered) to source
+	// files that devbox materializes for this config. Empty values create
+	// directories. Plugin-specific today, but legal in any includable config.
+	CreateFiles map[string]string `json:"create_files,omitempty"`
+
+	// Version identifies the config for change detection and lockfiles.
+	Version string `json:"version,omitempty"`
+
+	// RemoveTriggerPackage removes the package that triggered this config from
+	// the environment (used by plugins whose flake replaces the package).
+	RemoveTriggerPackage bool `json:"__remove_trigger_package,omitempty"`
 
 	ast *configAST
 }

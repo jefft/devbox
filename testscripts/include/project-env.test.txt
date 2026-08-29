@@ -1,0 +1,54 @@
+# Relative paths in an included project's services resolve against the
+# include chain: the consuming project's directory first, then each
+# including project, innermost last. Devbox materializes this as a symlink
+# forest the services daemon runs in, so devbox.d-style directories do not
+# need copying into the consumer.
+
+exec devbox init
+
+# B's devbox.d provides the script, so the consumer needs no copy of it.
+exec devbox services start deep-service
+exec waitfile result.txt
+cmp expected-layer-b.txt result.txt
+exec devbox services stop
+
+# A overrides the same relative path; the forest refreshes on restart.
+mkdir -p devbox.d/bin
+cp devbox.d/bin/layer-a.sh devbox.d/bin/layer
+rm result.txt
+exec devbox services restart deep-service
+exec waitfile result.txt
+cmp expected-layer-a.txt result.txt
+exec devbox services stop
+
+-- expected-layer-b.txt --
+layer-b
+-- expected-layer-a.txt --
+layer-a
+-- devbox.json --
+{
+  "include": ["b"]
+}
+-- b/devbox.json --
+{
+  "name": "b",
+  "include": ["c"]
+}
+-- b/c/devbox.json --
+{
+  "name": "c"
+}
+-- b/c/process-compose.yml --
+version: "0.5"
+processes:
+  deep-service:
+    command: "sh devbox.d/bin/layer > \"$WORK/result.txt\"; sleep 300"
+-- b/c/devbox.d/bin/layer --
+#!/bin/sh
+echo "layer-c"
+-- b/devbox.d/bin/layer --
+#!/bin/sh
+echo "layer-b"
+-- devbox.d/bin/layer-a.sh --
+#!/bin/sh
+echo "layer-a"

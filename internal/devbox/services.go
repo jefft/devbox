@@ -167,6 +167,12 @@ func (d *Devbox) RestartServices(
 
 	// TODO: Restart with no services should restart the _currently running_ services. This means we should get the list of running services from the process-compose, then restart them all.
 
+	// Refresh the project environment so restarted services resolve against
+	// the current state of every project in the include chain.
+	if _, err := services.NewProjectEnv(d.cfg.LocalProjectDirs()).Dir(d.projectDir); err != nil {
+		return err
+	}
+
 	svcSet, err := d.Services()
 	if err != nil {
 		return err
@@ -270,6 +276,7 @@ func (d *Devbox) StartProcessManager(
 		requestedServices,
 		svcs,
 		d.projectDir,
+		services.NewProjectEnv(d.cfg.LocalProjectDirs()),
 		services.ProcessComposeOpts{
 			BinPath:            processComposeBinPath,
 			Background:         processComposeOpts.Background,

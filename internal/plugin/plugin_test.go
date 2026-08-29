@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.jetify.com/devbox/internal/devconfig/configfile"
 	"go.jetify.com/devbox/internal/lock"
 	"go.jetify.com/devbox/nix/flake"
 )
@@ -162,10 +163,8 @@ func TestUpdateLockfileVersion(t *testing.T) {
 			}
 
 			cfg := &Config{
-				PluginOnlyData: PluginOnlyData{
-					Source:  fakeIncludable{name: "nodejs@22"},
-					Version: "0.0.2",
-				},
+				ConfigFile: configfile.ConfigFile{Version: "0.0.2"},
+				Source:     fakeIncludable{name: "nodejs@22"},
 			}
 			m := NewManager(WithLockfile(lockfile))
 			require.NoError(t, m.UpdateLockfileVersion(cfg, test.overwrite))

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/rogpeppe/go-internal/testscript"
@@ -21,6 +22,24 @@ func Main(m *testing.M) {
 		"devbox": func() {
 			// Call the devbox CLI directly:
 			os.Exit(boxcli.Execute(context.Background(), os.Args[1:]))
+		},
+		"waitfile": func() {
+			// Poll for a file to appear (services write asynchronously).
+			deadline := time.Now().Add(30 * time.Second)
+			for {
+				if len(os.Args) < 2 {
+					fmt.Fprintln(os.Stderr, "usage: waitfile <path>")
+					os.Exit(1)
+				}
+				if fi, err := os.Stat(os.Args[1]); err == nil && fi.Size() > 0 {
+					os.Exit(0)
+				}
+				if time.Now().After(deadline) {
+					fmt.Fprintf(os.Stderr, "waitfile: %s never appeared\n", os.Args[1])
+					os.Exit(1)
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
 		},
 		"print": func() { // Not 'echo' because we don't expand variables
 			fmt.Println(strings.Join(os.Args[1:], " "))

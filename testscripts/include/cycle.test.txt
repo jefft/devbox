@@ -1,0 +1,16 @@
+# Include cycles across projects are detected at config load time.
+
+exec devbox init
+
+! exec devbox services ls
+stderr 'circular or duplicate include detected:'
+
+-- devbox.json --
+{
+  "include": ["a"]
+}
+-- a/devbox.json --
+{
+  "name": "a",
+  "include": [".."]
+}

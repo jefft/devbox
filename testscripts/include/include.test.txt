@@ -1,0 +1,67 @@
+# A project can include another project by path. The outer project extends
+# the inner one: env vars, scripts, and services are inherited, and the outer
+# project wins on conflicts.
+
+exec devbox init
+
+# The outer project's env var wins over the inner project's.
+exec devbox add hello
+exec devbox run print-greeting
+stdout 'outer'
+
+# Env vars from the inner project (inline and .env) are available to outer scripts.
+exec devbox run inner-env
+stdout 'inner-value'
+exec devbox run inner-env-file
+stdout 'from-env-file'
+
+# Scripts defined only in the inner project are runnable from the outer project.
+exec devbox run base-only
+stdout 'base-only'
+
+# The inner project's create_files materialize into the outer project, making
+# its services available natively.
+exec devbox run ls .devbox/virtenv/base-stack
+stdout 'process-compose.yaml'
+exec devbox services ls
+stderr 'web'
+
+-- devbox.json --
+{
+  "include": ["base"],
+  "env": {
+    "GREETING": "outer"
+  },
+  "shell": {
+    "scripts": {
+      "print-greeting": "echo \"$GREETING\"",
+      "inner-env": "echo \"$FROM_INNER\"",
+      "inner-env-file": "echo \"$FROM_ENV\""
+    }
+  }
+}
+-- base/devbox.json --
+{
+  "name": "base-stack",
+  "env_from": ".env",
+  "env": {
+    "GREETING": "inner",
+    "FROM_INNER": "inner-value"
+  },
+  "shell": {
+    "scripts": {
+      "print-greeting": "echo inner-version",
+      "base-only": "echo base-only"
+    }
+  },
+  "create_files": {
+    "{{ .Virtenv }}/process-compose.yaml": "pc.yaml"
+  }
+}
+-- base/.env --
+FROM_ENV=from-env-file
+-- base/pc.yaml --
+version: "0.5"
+processes:
+  web:
+    command: "sleep infinity"

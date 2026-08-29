@@ -19,7 +19,18 @@ Before contributing, please consult our [Contributing Guide](../CONTRIBUTING.md)
 
 ## Plugin Design
 
-Plugins are defined as Go JSON Template files, using the following schema:
+Plugins are defined as Go JSON Template files, using the following schema,
+which is the same schema as `devbox.json`
+([.schema/devbox.schema.json](../.schema/devbox.schema.json)). A plugin
+descriptor additionally requires `name`, `version`, and `description`, and
+may define `create_files`:
+
+Sharing one schema does not make a plugin a standalone project. A plugin
+descriptor is a fragment meant to be included by a project: it is not
+discovered as a project root, its `create_files` only materialize when a
+project includes it, and its `packages` are additions to the including
+project's package set. To try a plugin, create a minimal project whose
+`devbox.json` contains `{"include": ["<path or ref to the plugin>"]}`.
 
 ```json
 {
@@ -38,7 +49,35 @@ Plugins are defined as Go JSON Template files, using the following schema:
 }
 ```
 
-A plugin can define services by adding a `process-compose.yaml` file in its `create_files` stanza.
+### Including another project
+
+Projects and plugins share one descriptor schema, and an `include` entry can
+point at another project — a directory containing a `devbox.json`, or the path
+to a `devbox.json` file — in addition to a plugin descriptor. The including
+project extends the included one: packages are unioned, environment variables
+defined by the included project are overridden by the including project,
+scripts are merged by name (the including project wins), and any services the
+included project defines through `create_files` are available to the including
+project as if they were defined locally. Relative paths inside an included
+project (for example `env_from`) resolve against that project's own directory.
+
+Services defined in an included project's root-level `process-compose.yml`
+are inherited the same way, with the same provenance rules: two files in the
+tree defining the same service is an error, and the outermost project's file
+still overrides plugin-provided services. Remote includes (git, github)
+contribute services only through `create_files`, since they have no
+checked-out project directory.
+
+Service commands run inside a **project environment**: devbox materializes a
+symlink forest that deep-merges the consuming project's directory with every
+included project's, consumer first, and runs process-compose inside it. A
+relative path in an included project's services (for example
+`devbox.d/bin/setup`) therefore resolves down the include chain — the
+consuming project's file wins, inner projects fill the gaps — so
+`devbox.d`-style directories never need copying between projects. The forest
+lives in the consumer's `.devbox/gen/project-env/`, is rebuilt on every
+start or restart, and the chain is exported to services as
+`DEVBOX_PROJECT_ROOTS` (consumer first).
 
 ### Plugin Lifecycle
 

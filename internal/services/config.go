@@ -5,6 +5,7 @@ package services
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 
+	"go.jetify.com/devbox/internal/boxcli/usererr"
 	"go.jetify.com/devbox/internal/cuecfg"
 )
 
@@ -27,6 +29,35 @@ func FromUserProcessCompose(projectDir, userProcessCompose string) Services {
 		return nil
 	}
 	return userSvcs
+}
+
+// FromProjectProcessComposes merges the root-level process-compose file of
+// each project directory, innermost first, so that a project including
+// another project inherits its user services. Two distinct files defining
+// the same service is an error.
+func FromProjectProcessComposes(dirs []string) (Services, error) {
+	all := Services{}
+	origins := map[string]string{} // service name -> defining file
+	for _, dir := range dirs {
+		path := lookupProcessCompose(dir, "")
+		if path == "" {
+			continue
+		}
+		svcs, err := FromProcessCompose(path)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		for name := range svcs {
+			if prev, ok := origins[name]; ok {
+				return nil, usererr.New(
+					"service %q is defined by two project process-compose files: %q and %q",
+					name, prev, path)
+			}
+			origins[name] = path
+		}
+		maps.Copy(all, svcs)
+	}
+	return all, nil
 }
 
 func FromProcessCompose(path string) (Services, error) {

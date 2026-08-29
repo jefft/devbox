@@ -117,9 +117,17 @@ func StartProcessManager(
 	requestedServices []string,
 	availableServices Services,
 	projectDir string,
+	env ProjectEnv,
 	processComposeConfig ProcessComposeOpts,
 ) error {
-	// Check if process-compose is already running
+	// The daemon runs inside the project environment so that relative
+	// references in every service (consumer or any included project) resolve
+	// against the include chain: consumer first, innermost project last.
+	envDir, err := env.Dir(projectDir)
+	if err != nil {
+		return err
+	}
+
 	if ProcessManagerIsRunning(projectDir) {
 		return fmt.Errorf("process-compose is already running. To stop it, run `devbox services stop`")
 	}
@@ -175,10 +183,14 @@ func StartProcessManager(
 	if processComposeConfig.Background {
 		flags = append(flags, "-t=false")
 		cmd := exec.Command(processComposeConfig.BinPath, flags...)
+		cmd.Dir = envDir
+		cmd.Env = append(os.Environ(), "DEVBOX_PROJECT_ROOTS="+strings.Join(env.Roots, string(filepath.ListSeparator)))
 		return runProcessManagerInBackground(cmd, config, port, projectDir, w)
 	}
 
 	cmd := exec.Command(processComposeConfig.BinPath, flags...)
+	cmd.Dir = envDir
+	cmd.Env = append(os.Environ(), "DEVBOX_PROJECT_ROOTS="+strings.Join(env.Roots, string(filepath.ListSeparator)))
 	return runProcessManagerInForeground(cmd, config, port, projectDir, w)
 }
 

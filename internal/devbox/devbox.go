@@ -196,7 +196,7 @@ func (d *Devbox) ConfigHash() (string, error) {
 	for _, pkg := range d.AllPackages() {
 		buf.WriteString(pkg.Hash())
 	}
-	for _, pluginConfig := range d.cfg.IncludedPluginConfigs() {
+	for _, pluginConfig := range d.cfg.IncludedConfigs() {
 		h, err := pluginConfig.Hash()
 		if err != nil {
 			return "", err
@@ -597,14 +597,24 @@ func (d *Devbox) saveCfg() error {
 }
 
 func (d *Devbox) Services() (services.Services, error) {
-	pluginSvcs, err := plugin.GetServices(d.cfg.IncludedPluginConfigs())
+	includedSvcs, err := plugin.GetServices(d.cfg.IncludedConfigs())
 	if err != nil {
 		return nil, err
 	}
 
-	userSvcs := services.FromUserProcessCompose(d.projectDir, d.customProcessComposeFile)
+	// User services (root-level process-compose.yml) are inherited from the
+	// whole include tree, innermost first; two distinct files defining the
+	// same service is an error.
+	userSvcs, err := services.FromProjectProcessComposes(d.cfg.LocalProjectDirs())
+	if err != nil {
+		return nil, err
+	}
+	if d.customProcessComposeFile != "" {
+		userSvcs = lo.Assign(userSvcs,
+			services.FromUserProcessCompose(d.projectDir, d.customProcessComposeFile))
+	}
 
-	svcSet := lo.Assign(pluginSvcs, userSvcs)
+	svcSet := lo.Assign(includedSvcs, userSvcs)
 	keys := make([]string, 0, len(svcSet))
 	for k := range svcSet {
 		keys = append(keys, k)
@@ -999,33 +1009,40 @@ func (d *Devbox) configEnvs(
 ) (map[string]string, error) {
 	defer debug.FunctionTimer().End()
 	env := map[string]string{}
-	if d.cfg.IsJetifyCloudEnvFrom() {
-		ux.Fwarningf(
-			d.stderr,
-			"Ignoring env_from = %q. Jetify Cloud secrets are no longer "+
-				"supported by Devbox.\n",
-			d.cfg.Root.EnvFrom,
-		)
-	} else if d.cfg.Root.IsdotEnvEnabled() {
-		// if env_from points to a .env file, parse and add it
-		parsedEnvs, err := d.cfg.Root.ParseEnvsFromDotEnv()
-		if err != nil {
-			// it's fine to include the error ParseEnvsFromDotEnv here because
-			// the error message is relevant to the user
+	warned := map[string]bool{}
+	// Apply env_from with provenance: every config in the include tree
+	// contributes its own .env file, innermost first, root last.
+	for _, cf := range d.cfg.EnvFromConfigs() {
+		switch {
+		case cf.IsJetifyCloudEnvFrom():
+			if !warned[cf.EnvFrom] {
+				warned[cf.EnvFrom] = true
+				ux.Fwarningf(
+					d.stderr,
+					"Ignoring env_from = %q. Jetify Cloud secrets are no longer "+
+						"supported by Devbox.\n",
+					cf.EnvFrom,
+				)
+			}
+		case cf.IsdotEnvEnabled():
+			// if env_from points to a .env file, parse and add it
+			parsedEnvs, err := cf.ParseEnvsFromDotEnv()
+			if err != nil {
+				// it's fine to include the error ParseEnvsFromDotEnv here because
+				// the error message is relevant to the user
+				return nil, usererr.New(
+					"failed parsing %s file. Error: %v",
+					cf.EnvFrom,
+					err,
+				)
+			}
+			maps.Copy(env, parsedEnvs)
+		case cf.EnvFrom != "":
 			return nil, usererr.New(
-				"failed parsing %s file. Error: %v",
-				d.cfg.Root.EnvFrom,
-				err,
+				"unknown env_from value: %s. It must be a path to a file ending in \".env\"",
+				cf.EnvFrom,
 			)
 		}
-		for k, v := range parsedEnvs {
-			env[k] = v
-		}
-	} else if d.cfg.Root.EnvFrom != "" {
-		return nil, usererr.New(
-			"unknown env_from value: %s. It must be a path to a file ending in \".env\"",
-			d.cfg.Root.EnvFrom,
-		)
 	}
 	for k, v := range d.cfg.Env() {
 		env[k] = v

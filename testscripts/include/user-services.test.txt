@@ -1,0 +1,21 @@
+# A project's root-level process-compose.yml (user services) is inherited
+# by projects that include it.
+
+exec devbox init
+
+exec devbox services ls
+stderr 'from-inner'
+
+-- devbox.json --
+{
+  "include": ["inner"]
+}
+-- inner/devbox.json --
+{
+  "name": "inner"
+}
+-- inner/process-compose.yml --
+version: "0.5"
+processes:
+  from-inner:
+    command: "sleep infinity"

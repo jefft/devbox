@@ -3,6 +3,7 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"regexp"
 
 	"go.jetify.com/devbox/internal/boxcli/usererr"
@@ -24,6 +25,13 @@ func parseIncludable(includableRef, workingDir string) (Includable, error) {
 	switch ref.Type {
 	case flake.TypePath:
 		return newLocalPlugin(ref, workingDir)
+	case flake.TypeIndirect:
+		// Bare names (e.g. "inner" or "./../base") parse as indirect flake
+		// registry refs. Devbox treats them as local paths relative to the
+		// including config's directory.
+		ref.Type = flake.TypePath
+		ref.Path = includableRef
+		return newLocalPlugin(ref, workingDir)
 	case flake.TypeGitHub:
 		return newGithubPlugin(ref)
 	case flake.TypeGit:
@@ -39,8 +47,9 @@ type fetcher interface {
 }
 
 var (
-	nameRegex      = regexp.MustCompile(`^[a-zA-Z0-9_\- ]+$`)
-	errNameMissing = usererr.New("'name' is missing")
+	nameRegex        = regexp.MustCompile(`^[a-zA-Z0-9_\- ]+$`)
+	nameRegexInvalid = regexp.MustCompile(`[^a-zA-Z0-9_\- ]`)
+	errNameMissing   = usererr.New("'name' is missing")
 )
 
 func getPluginNameFromContent(plugin fetcher) (string, error) {
@@ -64,4 +73,23 @@ func getPluginNameFromContent(plugin fetcher) (string, error) {
 		)
 	}
 	return name, nil
+}
+
+// getProjectNameFromContent reads the optional "name" field of a project
+// descriptor (devbox.json), falling back to a sanitized form of the
+// descriptor's directory name.
+func getProjectNameFromContent(plugin fetcher) (string, error) {
+	content, err := plugin.Fetch()
+	if err != nil {
+		return "", err
+	}
+	m := map[string]any{}
+	if err := json.Unmarshal(content, &m); err != nil {
+		return "", err
+	}
+	if name, ok := m["name"].(string); ok && nameRegex.MatchString(name) {
+		return name, nil
+	}
+	base := filepath.Base(filepath.Dir(plugin.(*LocalPlugin).path))
+	return nameRegexInvalid.ReplaceAllString(base, "-"), nil
 }

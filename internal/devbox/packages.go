@@ -367,7 +367,7 @@ func (d *Devbox) updateLockfile(recomputeState bool) error {
 	}
 
 	// Update plugin versions in lockfile.
-	for _, pluginConfig := range d.Config().IncludedPluginConfigs() {
+	for _, pluginConfig := range d.Config().IncludedConfigs() {
 		if err := d.PluginManager().UpdateLockfileVersion(pluginConfig); err != nil {
 			return err
 		}
@@ -462,7 +462,7 @@ func resetProfileDirForFlakes(profileDir string) (err error) {
 func (d *Devbox) installPackages(ctx context.Context, mode installMode) error {
 	defer debug.FunctionTimer().End()
 	// Create plugin directories first because packages might need them
-	for _, pluginConfig := range d.Config().IncludedPluginConfigs() {
+	for _, pluginConfig := range d.Config().IncludedConfigs() {
 		if err := d.PluginManager().CreateFilesForConfig(pluginConfig); err != nil {
 			return err
 		}

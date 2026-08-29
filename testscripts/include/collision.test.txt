@@ -1,0 +1,30 @@
+# Two different includes with the same name that both create files error out
+# instead of silently overwriting each other in the shared virtenv directory.
+
+exec devbox init
+
+! exec devbox services ls
+stderr 'two different includes named "dup" both create files'
+
+-- devbox.json --
+{
+  "include": ["a", "b"]
+}
+-- a/devbox.json --
+{
+  "name": "dup",
+  "create_files": {
+    "{{ .Virtenv }}/a.txt": "a.txt"
+  }
+}
+-- a/a.txt --
+a
+-- b/devbox.json --
+{
+  "name": "dup",
+  "create_files": {
+    "{{ .Virtenv }}/b.txt": "b.txt"
+  }
+}
+-- b/b.txt --
+b

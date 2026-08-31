@@ -84,7 +84,7 @@ func (e ProjectEnv) Dir(projectDir string) (string, error) {
 // win per file while inner projects fill the gaps. Symlinks are linked as
 // symlinks and never followed.
 func mergeTree(dst, src string) error {
-	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ func mergeTree(dst, src string) error {
 		if rel == "." {
 			return nil
 		}
-		if d.IsDir() && rel == filepath.Base(src) && filepath.Dir(src) == filepath.Dir(dst) {
+		if entry.IsDir() && rel == filepath.Base(src) && filepath.Dir(src) == filepath.Dir(dst) {
 			// Unreachable in practice; guard against self-merge.
 			return filepath.SkipDir
 		}
@@ -105,14 +105,14 @@ func mergeTree(dst, src string) error {
 		target := filepath.Join(dst, rel)
 		if _, err := os.Lstat(target); err == nil {
 			// Provided by a project further out: its entry wins.
-			if d.IsDir() {
+			if entry.IsDir() {
 				return nil // keep walking src to fill gaps inside the dir
 			}
 			return filepath.SkipDir
 		} else if !os.IsNotExist(err) {
 			return err
 		}
-		if d.IsDir() {
+		if entry.IsDir() {
 			return os.MkdirAll(target, 0o755)
 		}
 		return os.Symlink(path, target)

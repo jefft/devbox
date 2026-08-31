@@ -22,9 +22,9 @@ func TestProjectEnvDirSingleRootIsIdentity(t *testing.T) {
 func TestProjectEnvDirConsumerShadowsDefiner(t *testing.T) {
 	// a consumes b consumes c. Roots are consumer first, as the services
 	// daemon receives them.
-	c := t.TempDir()
-	b := t.TempDir()
-	a := t.TempDir()
+	rootC := t.TempDir()
+	rootB := t.TempDir()
+	rootA := t.TempDir()
 	consumer := t.TempDir()
 
 	write := func(dir, rel, content string) {
@@ -34,16 +34,16 @@ func TestProjectEnvDirConsumerShadowsDefiner(t *testing.T) {
 	}
 
 	// a overrides the same relative path that b defines.
-	write(b, "devbox.d/bin/from-b", "b")
-	write(a, "devbox.d/bin/from-b", "a")
+	write(rootB, "devbox.d/bin/from-b", "b")
+	write(rootA, "devbox.d/bin/from-b", "a")
 	// Files only defined innermost must resolve down the chain.
-	write(c, "devbox.d/bin/only-c", "c")
-	write(b, "only-b", "b")
+	write(rootC, "devbox.d/bin/only-c", "c")
+	write(rootB, "only-b", "b")
 	// a's devbox state must never enter the environment.
-	write(a, ".devbox/secret", "secret")
-	write(b, "only-b", "b")
-	write(a, "only-a", "a")
-	env := ProjectEnv{Roots: []string{consumer, a, b, c}}
+	write(rootA, ".devbox/secret", "secret")
+	write(rootB, "only-b", "b")
+	write(rootA, "only-a", "a")
+	env := ProjectEnv{Roots: []string{consumer, rootA, rootB, rootC}}
 	dir, err := env.Dir(consumer)
 	require.NoError(t, err)
 
@@ -65,20 +65,20 @@ func TestProjectEnvDirConsumerShadowsDefiner(t *testing.T) {
 
 func TestProjectEnvDirFillsFromDefiner(t *testing.T) {
 	// LocalProjectDirs order: innermost (definer) first.
-	c := t.TempDir()
-	b := t.TempDir()
-	a := t.TempDir()
+	rootC := t.TempDir()
+	rootB := t.TempDir()
+	rootA := t.TempDir()
 
 	write := func(dir, rel, content string) {
 		path := filepath.Join(dir, rel)
 		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 	}
-	write(c, "devbox.d/bin/setup", "from-c")
-	write(b, "devbox.d/other", "from-b")
+	write(rootC, "devbox.d/bin/setup", "from-c")
+	write(rootB, "devbox.d/other", "from-b")
 
-	env := NewProjectEnv([]string{c, b, a})
-	dir, err := env.Dir(a)
+	env := NewProjectEnv([]string{rootC, rootB, rootA})
+	dir, err := env.Dir(rootA)
 	require.NoError(t, err)
 
 	got, err := os.ReadFile(filepath.Join(dir, "devbox.d", "bin", "setup"))

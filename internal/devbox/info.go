@@ -10,7 +10,7 @@ import (
 // ProjectPaths describes the devbox-managed directories of the consuming
 // project and of every includable in its include tree. All values are
 // resolved (absolute) and match exactly what plugin templates see via
-// plugin.TemplateVars, so this cannot drift from what services and file
+// plugin.TemplateDataFor, so this cannot drift from what services and file
 // materialization actually use.
 type ProjectPaths struct {
 	ProjectDir    string            `json:"projectDir"`
@@ -35,10 +35,10 @@ type IncludablePaths struct {
 func (d *Devbox) ProjectPaths() ProjectPaths {
 	paths := ProjectPaths{Includables: []IncludablePaths{}}
 
-	vars := plugin.TemplateVars(d.projectDir, "")
-	paths.ProjectDir = vars["DevboxProjectDir"].(string)
-	paths.DevboxDirRoot = vars["DevboxDirRoot"].(string)
-	paths.ProfilePath = vars["DevboxProfileDefault"].(string)
+	data := plugin.TemplateDataFor(d.projectDir, "")
+	paths.ProjectDir = data.DevboxProjectDir
+	paths.DevboxDirRoot = data.DevboxDirRoot
+	paths.ProfilePath = data.DevboxProfileDefault
 
 	seen := map[string]bool{}
 	for _, cfg := range d.cfg.IncludedConfigs() {
@@ -50,14 +50,14 @@ func (d *Devbox) ProjectPaths() ProjectPaths {
 			continue
 		}
 		seen[name] = true
-		vars := plugin.TemplateVars(d.projectDir, name)
+		data := plugin.TemplateDataFor(d.projectDir, name)
 		paths.Includables = append(paths.Includables, IncludablePaths{
 			Name:       name,
-			DevboxDir:  vars["DevboxDir"].(string),
-			Virtenv:    vars["Virtenv"].(string),
-			DataDir:    vars["DataDir"].(string),
-			LogDir:     vars["LogDir"].(string),
-			RuntimeDir: vars["RuntimeDir"].(string),
+			DevboxDir:  data.DevboxDir,
+			Virtenv:    data.Virtenv,
+			DataDir:    data.DataDir,
+			LogDir:     data.LogDir,
+			RuntimeDir: data.RuntimeDir,
 		})
 	}
 	return paths

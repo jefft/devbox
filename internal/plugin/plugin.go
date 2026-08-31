@@ -60,20 +60,40 @@ func runtimeDir(projectDir, pluginName string) string {
 	return filepath.Join(base, "devbox", hex.EncodeToString(digest[:6]), pluginName)
 }
 
-// TemplateVars returns the template variables available to plugin templates
-// for the given project and plugin. Both the plugin.json render (buildConfig)
-// and the file-content render (createFile) build their maps from it, so path
-// values can never drift between the two render sites.
-func TemplateVars(projectDir, name string) map[string]any {
-	return map[string]any{
-		"DevboxDir":            filepath.Join(projectDir, devboxDirName, name),
-		"DevboxDirRoot":        filepath.Join(projectDir, devboxDirName),
-		"DevboxProfileDefault": filepath.Join(projectDir, nix.ProfilePath),
-		"DevboxProjectDir":     projectDir,
-		"Virtenv":              filepath.Join(projectDir, VirtenvPath, name),
-		"DataDir":              filepath.Join(projectDir, devboxHiddenDirName, "data", name),
-		"LogDir":               filepath.Join(projectDir, devboxHiddenDirName, "logs", name),
-		"RuntimeDir":           runtimeDir(projectDir, name),
+// TemplateData is the set of values available to plugin templates. Both the
+// plugin.json render (buildConfig) and the file-content render (createFile)
+// build their values from TemplateDataFor, so path values can never drift
+// between the two render sites. Go templates execute against struct fields,
+// so the field names are the template variables ({{ .LogDir }} etc.).
+type TemplateData struct {
+	DevboxDir            string
+	DevboxDirRoot        string
+	DevboxProfileDefault string
+	DevboxProjectDir     string
+	Virtenv              string
+	DataDir              string
+	LogDir               string
+	RuntimeDir           string
+
+	// Extra values only relevant to flake-file renders.
+	PackageAttributePath string
+	Packages             []string
+	System               string
+	URLForInput          string
+}
+
+// TemplateDataFor returns the template data for the given project directory
+// and plugin (or includable) name.
+func TemplateDataFor(projectDir, name string) TemplateData {
+	return TemplateData{
+		DevboxDir:            filepath.Join(projectDir, devboxDirName, name),
+		DevboxDirRoot:        filepath.Join(projectDir, devboxDirName),
+		DevboxProfileDefault: filepath.Join(projectDir, nix.ProfilePath),
+		DevboxProjectDir:     projectDir,
+		Virtenv:              filepath.Join(projectDir, VirtenvPath, name),
+		DataDir:              filepath.Join(projectDir, devboxHiddenDirName, "data", name),
+		LogDir:               filepath.Join(projectDir, devboxHiddenDirName, "logs", name),
+		RuntimeDir:           runtimeDir(projectDir, name),
 	}
 }
 
@@ -180,13 +200,13 @@ func (m *Manager) createFile(
 		urlForInput = pkg.URLForFlakeInput()
 	}
 
-	vars := TemplateVars(m.ProjectDir(), name)
-	vars["PackageAttributePath"] = attributePath
-	vars["Packages"] = m.AllPackageNamesIncludingRemovedTriggerPackages()
-	vars["System"] = nix.System()
-	vars["URLForInput"] = urlForInput
+	data := TemplateDataFor(m.ProjectDir(), name)
+	data.PackageAttributePath = attributePath
+	data.Packages = m.AllPackageNamesIncludingRemovedTriggerPackages()
+	data.System = nix.System()
+	data.URLForInput = urlForInput
 	var buf bytes.Buffer
-	if err = tmpl.Execute(&buf, vars); err != nil {
+	if err = tmpl.Execute(&buf, data); err != nil {
 		return errors.WithStack(err)
 	}
 	var fileMode fs.FileMode = 0o644
@@ -214,7 +234,7 @@ func buildConfig(pkg Includable, projectDir, content string) (*Config, error) {
 		return nil, errors.WithStack(err)
 	}
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, TemplateVars(projectDir, name)); err != nil {
+	if err = t.Execute(&buf, TemplateDataFor(projectDir, name)); err != nil {
 		return nil, errors.WithStack(err)
 	}
 

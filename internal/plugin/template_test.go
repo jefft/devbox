@@ -145,7 +145,6 @@ func TestShippedPluginsDataAndLogDirs(t *testing.T) {
 	}{
 		{"mariadb.json", "mariadb", "MYSQL_DATADIR", "", ""},
 		{"mysql.json", "mysql", "MYSQL_DATADIR", "", ""},
-		{"nginx.json", "nginx", "", "NGINX_LOGDIR", ""},
 		{"php.json", "php", "", "PHPFPM_ERROR_LOG_FILE", "php-fpm.log"},
 		{"postgresql.json", "postgresql", "PGDATA", "", ""},
 	} {
@@ -215,3 +214,40 @@ func (f fakeIncludable) CanonicalName() string              { return f.name }
 func (f fakeIncludable) FileContent(string) ([]byte, error) { return nil, nil }
 func (f fakeIncludable) Hash() string                       { return "" }
 func (f fakeIncludable) LockfileKey() string                { return f.name }
+
+// TestShippedPluginsServiceEnvContract pins the DEVBOX_* injection: every
+// shipped plugin's process-compose.yaml carries an environment block that
+// devbox renders per includable, so plugin templates can reference their
+// structural directories without declaring per-plugin aliases.
+func TestShippedPluginsServiceEnvContract(t *testing.T) {
+	deep := "/home/user/projects/myapp"
+	want := map[string]string{
+		"DEVBOX_DEV_DIR":     filepath.Join(deep, "devbox.d", "nginx"),
+		"DEVBOX_LOG_DIR":     filepath.Join(deep, ".devbox", "logs", "nginx"),
+		"DEVBOX_DATA_DIR":    filepath.Join(deep, ".devbox", "data", "nginx"),
+		"DEVBOX_RUNTIME_DIR": runtimeDir(deep, "nginx"),
+		"DEVBOX_VIRTENV":     filepath.Join(deep, ".devbox", "virtenv", "nginx"),
+		"DEVBOX_PROJECT_DIR": deep,
+	}
+	content, err := os.ReadFile(filepath.Join("..", "..", "plugins", "nginx", "process-compose.yaml"))
+	if err != nil {
+		t.Fatalf("read nginx process-compose.yaml: %v", err)
+	}
+	tmpl, err := template.New("pc").Parse(string(content))
+	if err != nil {
+		t.Fatalf("parse nginx process-compose.yaml: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, TemplateDataFor(deep, "nginx")); err != nil {
+		t.Fatalf("render nginx process-compose.yaml: %v", err)
+	}
+	for key, value := range want {
+		line := key + "=" + value
+		if !strings.Contains(buf.String(), line) {
+			t.Errorf("rendered nginx process-compose.yaml missing %q", line)
+		}
+	}
+	if strings.Contains(buf.String(), "NGINX_LOGDIR") {
+		t.Error("nginx process-compose.yaml still references the removed NGINX_LOGDIR alias")
+	}
+}

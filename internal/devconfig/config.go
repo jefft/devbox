@@ -258,33 +258,33 @@ func (c *Config) validateIncludeTree() error {
 	rootPinned := c.Root.NixPkgsCommitHash()
 	canonNames := map[string]includeInfo{} // CanonicalName -> source info
 	var walk func(c *Config) error
-	walk = func(c *Config) error {
-		if c.Root.RemoveTriggerPackage {
-			if _, ok := c.Source.(*devpkg.Package); !ok {
+	walk = func(cfg *Config) error {
+		if cfg.Root.RemoveTriggerPackage {
+			if _, ok := cfg.Source.(*devpkg.Package); !ok {
 				return usererr.New(
 					"__remove_trigger_package in %s is only valid for built-in plugins",
-					c.Root.AbsRootPath)
+					cfg.Root.AbsRootPath)
 			}
 		}
-		if pinned := c.Root.NixPkgsCommitHash(); pinned != "" &&
+		if pinned := cfg.Root.NixPkgsCommitHash(); pinned != "" &&
 			rootPinned != "" && pinned != rootPinned {
 			return usererr.New(
 				"%s pins nixpkgs %q but the project pins %q",
-				c.Root.AbsRootPath, pinned, rootPinned)
+				cfg.Root.AbsRootPath, pinned, rootPinned)
 		}
-		name := c.Source.CanonicalName()
-		key := c.Source.LockfileKey()
-		hasCreateFiles := len(c.Root.CreateFiles) > 0
+		name := cfg.Source.CanonicalName()
+		key := cfg.Source.LockfileKey()
+		hasCreateFiles := len(cfg.Root.CreateFiles) > 0
 		if prev, ok := canonNames[name]; ok && prev.key != key &&
 			prev.hasCreateFiles && hasCreateFiles &&
-			!sameCreateFiles(prev.cfg, c) {
+			!sameCreateFiles(prev.cfg, cfg) {
 			return usererr.New(
 				"two different includes named %q both create files and would "+
 					"collide in the same directory: %q and %q",
 				name, prev.key, key)
 		}
-		canonNames[name] = includeInfo{key: key, hasCreateFiles: hasCreateFiles, cfg: c}
-		for _, i := range c.included {
+		canonNames[name] = includeInfo{key: key, hasCreateFiles: hasCreateFiles, cfg: cfg}
+		for _, i := range cfg.included {
 			if err := walk(i); err != nil {
 				return err
 			}
@@ -304,12 +304,12 @@ func (c *Config) validateIncludeTree() error {
 // refs of the same plugin (for example different branches) are allowed to
 // coexist; two genuinely different configs must not silently overwrite each
 // other's files.
-func sameCreateFiles(a, b *Config) bool {
-	if len(a.Root.CreateFiles) != len(b.Root.CreateFiles) {
+func sameCreateFiles(left, right *Config) bool {
+	if len(left.Root.CreateFiles) != len(right.Root.CreateFiles) {
 		return false
 	}
-	for dest, contentPathA := range a.Root.CreateFiles {
-		contentPathB, ok := b.Root.CreateFiles[dest]
+	for dest, contentPathA := range left.Root.CreateFiles {
+		contentPathB, ok := right.Root.CreateFiles[dest]
 		if !ok {
 			return false
 		}
@@ -319,9 +319,9 @@ func sameCreateFiles(a, b *Config) bool {
 			}
 			continue
 		}
-		aContent, errA := a.Source.FileContent(contentPathA)
-		bContent, errB := b.Source.FileContent(contentPathB)
-		if errA != nil || errB != nil || !bytes.Equal(aContent, bContent) {
+		leftContent, errA := left.Source.FileContent(contentPathA)
+		rightContent, errB := right.Source.FileContent(contentPathB)
+		if errA != nil || errB != nil || !bytes.Equal(leftContent, rightContent) {
 			// Unreadable or differing content is treated as a collision so
 			// we never silently merge files we can't prove are identical.
 			return false

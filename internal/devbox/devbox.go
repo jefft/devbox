@@ -1012,35 +1012,35 @@ func (d *Devbox) configEnvs(
 	warned := map[string]bool{}
 	// Apply env_from with provenance: every config in the include tree
 	// contributes its own .env file, innermost first, root last.
-	for _, cf := range d.cfg.EnvFromConfigs() {
+	for _, configFile := range d.cfg.EnvFromConfigs() {
 		switch {
-		case cf.IsJetifyCloudEnvFrom():
-			if !warned[cf.EnvFrom] {
-				warned[cf.EnvFrom] = true
+		case configFile.IsJetifyCloudEnvFrom():
+			if !warned[configFile.EnvFrom] {
+				warned[configFile.EnvFrom] = true
 				ux.Fwarningf(
 					d.stderr,
 					"Ignoring env_from = %q. Jetify Cloud secrets are no longer "+
 						"supported by Devbox.\n",
-					cf.EnvFrom,
+					configFile.EnvFrom,
 				)
 			}
-		case cf.IsdotEnvEnabled():
+		case configFile.IsdotEnvEnabled():
 			// if env_from points to a .env file, parse and add it
-			parsedEnvs, err := cf.ParseEnvsFromDotEnv()
+			parsedEnvs, err := configFile.ParseEnvsFromDotEnv()
 			if err != nil {
 				// it's fine to include the error ParseEnvsFromDotEnv here because
 				// the error message is relevant to the user
 				return nil, usererr.New(
 					"failed parsing %s file. Error: %v",
-					cf.EnvFrom,
+					configFile.EnvFrom,
 					err,
 				)
 			}
 			maps.Copy(env, parsedEnvs)
-		case cf.EnvFrom != "":
+		case configFile.EnvFrom != "":
 			return nil, usererr.New(
 				"unknown env_from value: %s. It must be a path to a file ending in \".env\"",
-				cf.EnvFrom,
+				configFile.EnvFrom,
 			)
 		}
 	}

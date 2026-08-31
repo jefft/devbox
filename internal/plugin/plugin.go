@@ -135,7 +135,7 @@ func (m *Manager) CreateFilesForConfig(cfg *Config) error {
 			continue
 		}
 
-		if err := m.createFile(pkg, filePath, contentPath, virtenvPath); err != nil {
+		if err := m.createFile(pkg, filePath, contentPath); err != nil {
 			return err
 		}
 	}
@@ -157,7 +157,7 @@ func (m *Manager) UpdateLockfileVersion(cfg *Config) error {
 
 func (m *Manager) createFile(
 	pkg Includable,
-	filePath, contentPath, virtenvPath string,
+	filePath, contentPath string,
 ) error {
 	name := pkg.CanonicalName()
 	slog.Debug("Creating file %q from contentPath: %q", filePath, contentPath)

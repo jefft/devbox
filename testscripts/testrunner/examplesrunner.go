@@ -80,6 +80,16 @@ func RunDevboxTestscripts(t *testing.T, dir string) {
 			return nil
 		}
 
+		if strings.Contains(path, "lepp-stack") {
+			// lepp-stack is flaky in CI: postgres intermittently fails with
+			// "could not create any TCP/IP sockets", nginx then never binds,
+			// and the run_test curl fails. Reproduces on a clean tree with no
+			// devbox changes (the stack is pinned to rolling @latest
+			// packages).
+			t.Logf("skipping lepp-stack, config at: %s\n", path)
+			return nil
+		}
+
 		// Assign this project a stable shard slot, then skip it if it does not
 		// belong to the current runner.
 		idx := projectIdx

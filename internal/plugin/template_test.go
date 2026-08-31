@@ -16,13 +16,14 @@ import (
 // the per-user runtime dir, and be scoped per plugin (mysql and mariadb both
 // use mysql.sock, so a shared dir would collide).
 func TestRuntimeDirStableAndScoped(t *testing.T) {
-	t.Setenv("XDG_RUNTIME_DIR", "/run/user/1000")
+	runtimeBase := t.TempDir() // hermetic: /run/user/<uid> may not exist on CI
+	t.Setenv("XDG_RUNTIME_DIR", runtimeBase)
 	dir1 := runtimeDir("/home/user/projects/myapp", "mariadb")
 	dir2 := runtimeDir("/home/user/projects/myapp", "mariadb")
 	if dir1 != dir2 {
 		t.Fatalf("runtimeDir not stable: %q != %q", dir1, dir2)
 	}
-	if !strings.HasPrefix(dir1, "/run/user/1000/devbox/") {
+	if !strings.HasPrefix(dir1, runtimeBase+"/devbox/") {
 		t.Fatalf("expected XDG_RUNTIME_DIR base, got %q", dir1)
 	}
 	if !strings.HasSuffix(dir1, "/mariadb") {
@@ -58,15 +59,15 @@ func TestRuntimePathsFitUnixLimit(t *testing.T) {
 	deep := filepath.Join(strings.Repeat("a", 100), strings.Repeat("b", 100))
 	t.Setenv("XDG_RUNTIME_DIR", "")
 	t.Setenv("TMPDIR", "/var/folders/yn/abcdefghijklmnopqrstuvwx/T")
-	for _, tc := range []struct{ plugin, sock string }{
+	for _, testCase := range []struct{ plugin, sock string }{
 		{"mariadb", "mysql.sock"},
 		{"mysql", "mysql.sock"},
 		{"php", "php-fpm.sock"},
 		{"postgresql", ".s.PGSQL.5432"},
 	} {
-		got := filepath.Join(runtimeDir(deep, tc.plugin), tc.sock)
+		got := filepath.Join(runtimeDir(deep, testCase.plugin), testCase.sock)
 		if len(got) > 104 {
-			t.Errorf("%s socket path is %d chars (>104 limit): %s", tc.plugin, len(got), got)
+			t.Errorf("%s socket path is %d chars (>104 limit): %s", testCase.plugin, len(got), got)
 		}
 	}
 }
@@ -82,7 +83,7 @@ func TestRuntimeDirRenderedInPluginConfig(t *testing.T) {
 	    "MYSQL_UNIX_PORT": "{{ .RuntimeDir }}/mysql.sock"
 	  }
 	}`
-	cfg, err := buildConfig(fakeIncludable{name: "mariadb"}, deep, string(content))
+	cfg, err := buildConfig(fakeIncludable{name: "mariadb"}, deep, content)
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
@@ -106,29 +107,29 @@ func TestShippedPluginsRuntimePathsFitUnixLimit(t *testing.T) {
 	// sockFile is the filename the server appends to the env value: PGHOST is
 	// a directory (psql appends .s.PGSQL.<port>); the others are full socket
 	// paths already.
-	for _, tc := range []struct{ file, plugin, env, sockFile string }{
+	for _, testCase := range []struct{ file, plugin, env, sockFile string }{
 		{"mariadb.json", "mariadb", "MYSQL_UNIX_PORT", ""},
 		{"mysql.json", "mysql", "MYSQL_UNIX_PORT", ""},
 		{"php.json", "php", "PHPFPM_UNIX_SOCKET", ""},
 		{"postgresql.json", "postgresql", "PGHOST", ".s.PGSQL.5432"},
 	} {
-		content, err := os.ReadFile(filepath.Join("..", "..", "plugins", tc.file))
+		content, err := os.ReadFile(filepath.Join("..", "..", "plugins", testCase.file))
 		if err != nil {
-			t.Fatalf("read %s: %v", tc.file, err)
+			t.Fatalf("read %s: %v", testCase.file, err)
 		}
-		cfg, err := buildConfig(fakeIncludable{name: tc.plugin}, deep, string(content))
+		cfg, err := buildConfig(fakeIncludable{name: testCase.plugin}, deep, string(content))
 		if err != nil {
-			t.Fatalf("buildConfig(%s): %v", tc.file, err)
+			t.Fatalf("buildConfig(%s): %v", testCase.file, err)
 		}
-		got := cfg.Env[tc.env]
+		got := cfg.Env[testCase.env]
 		if got == "" {
-			t.Fatalf("%s: env %s not rendered", tc.file, tc.env)
+			t.Fatalf("%s: env %s not rendered", testCase.file, testCase.env)
 		}
-		if tc.sockFile != "" {
-			got = filepath.Join(got, tc.sockFile)
+		if testCase.sockFile != "" {
+			got = filepath.Join(got, testCase.sockFile)
 		}
 		if len(got) > 104 {
-			t.Errorf("%s: %s socket path is %d chars (>104): %s", tc.file, tc.env, len(got), got)
+			t.Errorf("%s: %s socket path is %d chars (>104): %s", testCase.file, testCase.env, len(got), got)
 		}
 	}
 }
@@ -139,7 +140,7 @@ func TestShippedPluginsRuntimePathsFitUnixLimit(t *testing.T) {
 func TestShippedPluginsDataAndLogDirs(t *testing.T) {
 	deep := "/home/user/projects/myapp"
 	t.Setenv("XDG_RUNTIME_DIR", "/run/user/1000")
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		file, plugin, dataEnv, logEnv, logFile string
 	}{
 		{"mariadb.json", "mariadb", "MYSQL_DATADIR", "", ""},
@@ -147,24 +148,24 @@ func TestShippedPluginsDataAndLogDirs(t *testing.T) {
 		{"php.json", "php", "", "PHPFPM_ERROR_LOG_FILE", "php-fpm.log"},
 		{"postgresql.json", "postgresql", "PGDATA", "", ""},
 	} {
-		content, err := os.ReadFile(filepath.Join("..", "..", "plugins", tc.file))
+		content, err := os.ReadFile(filepath.Join("..", "..", "plugins", testCase.file))
 		if err != nil {
-			t.Fatalf("read %s: %v", tc.file, err)
+			t.Fatalf("read %s: %v", testCase.file, err)
 		}
-		cfg, err := buildConfig(fakeIncludable{name: tc.plugin}, deep, string(content))
+		cfg, err := buildConfig(fakeIncludable{name: testCase.plugin}, deep, string(content))
 		if err != nil {
-			t.Fatalf("buildConfig(%s): %v", tc.file, err)
+			t.Fatalf("buildConfig(%s): %v", testCase.file, err)
 		}
-		if tc.dataEnv != "" {
-			want := filepath.Join(deep, ".devbox", "data", tc.plugin)
-			if got := cfg.Env[tc.dataEnv]; got != want {
-				t.Errorf("%s: %s = %q, want %q", tc.file, tc.dataEnv, got, want)
+		if testCase.dataEnv != "" {
+			want := filepath.Join(deep, ".devbox", "data", testCase.plugin)
+			if got := cfg.Env[testCase.dataEnv]; got != want {
+				t.Errorf("%s: %s = %q, want %q", testCase.file, testCase.dataEnv, got, want)
 			}
 		}
-		if tc.logEnv != "" {
-			want := filepath.Join(deep, ".devbox", "logs", tc.plugin, tc.logFile)
-			if got := cfg.Env[tc.logEnv]; got != want {
-				t.Errorf("%s: %s = %q, want %q", tc.file, tc.logEnv, got, want)
+		if testCase.logEnv != "" {
+			want := filepath.Join(deep, ".devbox", "logs", testCase.plugin, testCase.logFile)
+			if got := cfg.Env[testCase.logEnv]; got != want {
+				t.Errorf("%s: %s = %q, want %q", testCase.file, testCase.logEnv, got, want)
 			}
 		}
 	}

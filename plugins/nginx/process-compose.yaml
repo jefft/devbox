@@ -2,10 +2,21 @@ version: "0.5"
 
 processes:
   nginx:
+    # DEVBOX_* are the structural directories of this plugin's includable,
+    # rendered by devbox when this file is materialized (create_files runs
+    # the Go template per includable). They override inherited env; the
+    # plugin's own *_* env vars remain the user-tunable knobs.
+    environment:
+      - DEVBOX_DEV_DIR={{ .DevboxDir }}
+      - DEVBOX_LOG_DIR={{ .LogDir }}
+      - DEVBOX_DATA_DIR={{ .DataDir }}
+      - DEVBOX_RUNTIME_DIR={{ .RuntimeDir }}
+      - DEVBOX_VIRTENV={{ .Virtenv }}
+      - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
     command: |
-      mkdir -p "$NGINX_LOGDIR"
-      if [ -f $NGINX_CONFDIR/nginx.template ]; then envsubst $(awk 'BEGIN {for (k in ENVIRON) {printf "$"k","}}') < $NGINX_CONFDIR/nginx.template > $NGINX_CONFDIR/nginx.conf; fi
-      nginx -p $NGINX_PATH_PREFIX -c $NGINX_CONFDIR/nginx.conf -e $NGINX_LOGDIR/nginx-error.log -g "pid nginx.pid;daemon off;"
+      mkdir -p "$DEVBOX_LOG_DIR"
+      if [ -f $DEVBOX_DEV_DIR/nginx.template ]; then envsubst $(awk 'BEGIN {for (k in ENVIRON) {printf "$"k","}}') < $DEVBOX_DEV_DIR/nginx.template > $DEVBOX_DEV_DIR/nginx.conf; fi
+      nginx -p $DEVBOX_VIRTENV -c $DEVBOX_DEV_DIR/nginx.conf -e $DEVBOX_LOG_DIR/nginx-error.log -g "pid nginx.pid;daemon off;"
     availability:
       restart: on_failure
       max_restarts: 5
@@ -16,10 +27,32 @@ processes:
         path: /
       initial_delay_seconds: 1
   nginx-error:
-    command: "tail -f $NGINX_LOGDIR/nginx-error.log"
+    # DEVBOX_* are the structural directories of this plugin's includable,
+    # rendered by devbox when this file is materialized (create_files runs
+    # the Go template per includable). They override inherited env; the
+    # plugin's own *_* env vars remain the user-tunable knobs.
+    environment:
+      - DEVBOX_DEV_DIR={{ .DevboxDir }}
+      - DEVBOX_LOG_DIR={{ .LogDir }}
+      - DEVBOX_DATA_DIR={{ .DataDir }}
+      - DEVBOX_RUNTIME_DIR={{ .RuntimeDir }}
+      - DEVBOX_VIRTENV={{ .Virtenv }}
+      - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
+    command: "tail -f $DEVBOX_LOG_DIR/nginx-error.log"
     availability:
       restart: "always"
   nginx-access:
-    command: "tail -f $NGINX_LOGDIR/nginx-access.log"
+    # DEVBOX_* are the structural directories of this plugin's includable,
+    # rendered by devbox when this file is materialized (create_files runs
+    # the Go template per includable). They override inherited env; the
+    # plugin's own *_* env vars remain the user-tunable knobs.
+    environment:
+      - DEVBOX_DEV_DIR={{ .DevboxDir }}
+      - DEVBOX_LOG_DIR={{ .LogDir }}
+      - DEVBOX_DATA_DIR={{ .DataDir }}
+      - DEVBOX_RUNTIME_DIR={{ .RuntimeDir }}
+      - DEVBOX_VIRTENV={{ .Virtenv }}
+      - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
+    command: "tail -f $DEVBOX_LOG_DIR/nginx-access.log"
     availability:
       restart: "always"

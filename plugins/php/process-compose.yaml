@@ -2,6 +2,17 @@ version: "0.5"
 
 processes:
   php-fpm:
+    # DEVBOX_* are the structural directories of this plugin's includable,
+    # rendered by devbox when this file is materialized (create_files runs
+    # the Go template per includable). They override inherited env; the
+    # plugin's own *_* env vars remain the user-tunable knobs.
+    environment:
+      - DEVBOX_DEV_DIR={{ .DevboxDir }}
+      - DEVBOX_LOG_DIR={{ .LogDir }}
+      - DEVBOX_DATA_DIR={{ .DataDir }}
+      - DEVBOX_RUNTIME_DIR={{ .RuntimeDir }}
+      - DEVBOX_VIRTENV={{ .Virtenv }}
+      - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
     # Backward compatibility (see PHPFPM_PORT in php.json): if the user sets
     # PHPFPM_PORT (e.g. in devbox.json env), an external tool may be
     # connecting to that TCP port, so listen on 127.0.0.1:$PHPFPM_PORT

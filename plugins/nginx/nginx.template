@@ -10,8 +10,8 @@ server {
          server_name  $NGINX_WEB_SERVER_NAME;
          root         $NGINX_WEB_ROOT;
 
-         error_log error.log error;
-         access_log access.log;
+         error_log $NGINX_LOGDIR/nginx-error.log error;
+         access_log $NGINX_LOGDIR/nginx-access.log;
          client_body_temp_path temp/client_body;
          proxy_temp_path temp/proxy;
          fastcgi_temp_path temp/fastcgi;

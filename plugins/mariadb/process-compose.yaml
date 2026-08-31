@@ -13,7 +13,7 @@ processes:
       - DEVBOX_RUNTIME_DIR={{ .RuntimeDir }}
       - DEVBOX_VIRTENV={{ .Virtenv }}
       - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
-    command: "mkdir -p -m 700 \"$(dirname \"$MYSQL_UNIX_PORT\")\"; echo 'Starting mariadbd... check mariadb_logs for details'; mariadbd --log-error={{ .LogDir }}/mysql.log"
+    command: "echo 'Starting mariadbd... check mariadb_logs for details'; mariadbd --log-error={{ .LogDir }}/mysql.log"
     is_daemon: false
     shutdown:
       command: "mariadb-admin -u root shutdown"

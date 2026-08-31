@@ -14,7 +14,6 @@ processes:
       - DEVBOX_VIRTENV={{ .Virtenv }}
       - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
     command: |
-      mkdir -p "$DEVBOX_LOG_DIR"
       if [ -f $DEVBOX_DEV_DIR/nginx.template ]; then envsubst $(awk 'BEGIN {for (k in ENVIRON) {printf "$"k","}}') < $DEVBOX_DEV_DIR/nginx.template > $DEVBOX_DEV_DIR/nginx.conf; fi
       nginx -p $DEVBOX_VIRTENV -c $DEVBOX_DEV_DIR/nginx.conf -e $DEVBOX_LOG_DIR/nginx-error.log -g "pid nginx.pid;daemon off;"
     availability:

@@ -137,6 +137,20 @@ func (m *Manager) CreateFilesForConfig(cfg *Config) error {
 		return err
 	}
 
+	// Devbox owns the plugin directory lifecycle: every includable gets its
+	// data, log, and runtime directories regardless of whether the plugin
+	// remembered to create them. RuntimeDir is user-private per XDG.
+	data := TemplateDataFor(m.ProjectDir(), name)
+	if err := createDir(data.DataDir); err != nil {
+		return err
+	}
+	if err := createDir(data.LogDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(data.RuntimeDir, 0o700); err != nil {
+		return errors.WithStack(err)
+	}
+
 	slog.Debug("creating files for package", "pkg", pkg)
 	for filePath, contentPath := range cfg.CreateFiles {
 		if !m.shouldCreateFile(locked, filePath) {

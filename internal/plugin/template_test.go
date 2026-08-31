@@ -199,7 +199,7 @@ func TestShippedPluginYamlsRenderCleanly(t *testing.T) {
 			t.Fatalf("%s: parse: %v", dir.Name(), err)
 		}
 		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, TemplateVars(deep, dir.Name())); err != nil {
+		if err := tmpl.Execute(&buf, TemplateDataFor(deep, dir.Name())); err != nil {
 			t.Fatalf("%s: render: %v", dir.Name(), err)
 		}
 		rendered := buf.String()

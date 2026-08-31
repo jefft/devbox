@@ -18,8 +18,6 @@
     "{{ .DevboxDir }}/php-fpm.conf": "php/php-fpm.conf",
     "{{ .DevboxDir }}/php.ini": "php/php.ini",
     "{{ .Virtenv }}/sessions": "",
-    "{{ .RuntimeDir }}": "",
-    "{{ .LogDir }}": "",
     "{{ .Virtenv }}/process-compose.yaml": "php/process-compose.yaml",
     "{{ .Virtenv }}/flake/flake.nix": "php/flake.nix"
   }

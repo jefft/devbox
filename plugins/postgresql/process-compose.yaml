@@ -13,7 +13,7 @@ processes:
       - DEVBOX_RUNTIME_DIR={{ .RuntimeDir }}
       - DEVBOX_VIRTENV={{ .Virtenv }}
       - DEVBOX_PROJECT_DIR={{ .DevboxProjectDir }}
-    command: "sh -c 'mkdir -p -m 700 \"$PGHOST\"; exec postgres -k \"$PGHOST\" -p \"${PGPORT:-5432}\"'"
+    command: "sh -c 'exec postgres -k \"$PGHOST\" -p \"${PGPORT:-5432}\"'"
     is_daemon: false
     shutdown:
       command: "pg_ctl stop -m fast"

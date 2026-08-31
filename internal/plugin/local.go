@@ -26,7 +26,7 @@ type LocalPlugin struct {
 // Project includes don't require a "name" field; the descriptor's directory
 // name is the fallback canonical name.
 func newLocalPlugin(ref flake.Ref, pluginDir string) (*LocalPlugin, error) {
-	l := &LocalPlugin{ref: ref}
+	plugin := &LocalPlugin{ref: ref}
 	base := os.ExpandEnv(ref.Path)
 	if !filepath.IsAbs(base) {
 		base = filepath.Join(pluginDir, base)
@@ -35,16 +35,16 @@ func newLocalPlugin(ref flake.Ref, pluginDir string) (*LocalPlugin, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.path = path
+	plugin.path = path
 	if strings.HasSuffix(path, pluginConfigName) {
-		l.name, err = getPluginNameFromContent(l)
+		plugin.name, err = getPluginNameFromContent(plugin)
 	} else {
-		l.name, err = getProjectNameFromContent(l)
+		plugin.name, err = getProjectNameFromContent(plugin)
 	}
 	if err != nil {
 		return nil, err
 	}
-	return l, nil
+	return plugin, nil
 }
 
 // resolveDescriptorPath returns the descriptor file for a local include ref:
@@ -64,36 +64,36 @@ func resolveDescriptorPath(base string) (string, error) {
 		"no %s or %s found in %q", configfile.DefaultName, pluginConfigName, base)
 }
 
-func (l *LocalPlugin) Fetch() ([]byte, error) {
-	content, err := os.ReadFile(l.Path())
+func (plugin *LocalPlugin) Fetch() ([]byte, error) {
+	content, err := os.ReadFile(plugin.Path())
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	return jsonPurifyPluginContent(content)
 }
 
-func (l *LocalPlugin) CanonicalName() string {
-	return l.name
+func (plugin *LocalPlugin) CanonicalName() string {
+	return plugin.name
 }
 
-func (l *LocalPlugin) IsLocal() bool {
+func (plugin *LocalPlugin) IsLocal() bool {
 	return true
 }
 
-func (l *LocalPlugin) Hash() string {
-	return cachehash.Bytes([]byte(filepath.Clean(l.path)))
+func (plugin *LocalPlugin) Hash() string {
+	return cachehash.Bytes([]byte(filepath.Clean(plugin.path)))
 }
 
-func (l *LocalPlugin) FileContent(subpath string) ([]byte, error) {
-	return os.ReadFile(filepath.Join(filepath.Dir(l.path), subpath))
+func (plugin *LocalPlugin) FileContent(subpath string) ([]byte, error) {
+	return os.ReadFile(filepath.Join(filepath.Dir(plugin.path), subpath))
 }
 
-func (l *LocalPlugin) LockfileKey() string {
-	return l.ref.String()
+func (plugin *LocalPlugin) LockfileKey() string {
+	return plugin.ref.String()
 }
 
 // Path returns the absolute path to the descriptor file (devbox.json or
 // plugin.json) that this includable resolves to.
-func (l *LocalPlugin) Path() string {
-	return l.path
+func (plugin *LocalPlugin) Path() string {
+	return plugin.path
 }

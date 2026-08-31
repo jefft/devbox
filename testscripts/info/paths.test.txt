@@ -1,0 +1,25 @@
+# devbox info without a package prints the resolved project and includable
+# paths, in text and JSON.
+
+exec devbox init
+exec devbox info
+stdout 'Project dir:'
+stdout 'runtime:'
+
+# JSON output carries the same data, including per-includable paths.
+exec devbox info --json
+stdout '"runtimeDir"'
+stdout '"includables"'
+
+# --json is only for project mode.
+! exec devbox info --json hello
+stderr 'only supported without a package'
+
+-- devbox.json --
+{
+  "include": ["inner"]
+}
+-- inner/devbox.json --
+{
+  "name": "inner"
+}

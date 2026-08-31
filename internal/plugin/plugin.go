@@ -60,11 +60,11 @@ func runtimeDir(projectDir, pluginName string) string {
 	return filepath.Join(base, "devbox", hex.EncodeToString(digest[:6]), pluginName)
 }
 
-// templateVars returns the template variables available to plugin templates
+// TemplateVars returns the template variables available to plugin templates
 // for the given project and plugin. Both the plugin.json render (buildConfig)
 // and the file-content render (createFile) build their maps from it, so path
 // values can never drift between the two render sites.
-func templateVars(projectDir, name string) map[string]any {
+func TemplateVars(projectDir, name string) map[string]any {
 	return map[string]any{
 		"DevboxDir":            filepath.Join(projectDir, devboxDirName, name),
 		"DevboxDirRoot":        filepath.Join(projectDir, devboxDirName),
@@ -180,7 +180,7 @@ func (m *Manager) createFile(
 		urlForInput = pkg.URLForFlakeInput()
 	}
 
-	vars := templateVars(m.ProjectDir(), name)
+	vars := TemplateVars(m.ProjectDir(), name)
 	vars["PackageAttributePath"] = attributePath
 	vars["Packages"] = m.AllPackageNamesIncludingRemovedTriggerPackages()
 	vars["System"] = nix.System()
@@ -214,7 +214,7 @@ func buildConfig(pkg Includable, projectDir, content string) (*Config, error) {
 		return nil, errors.WithStack(err)
 	}
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, templateVars(projectDir, name)); err != nil {
+	if err = t.Execute(&buf, TemplateVars(projectDir, name)); err != nil {
 		return nil, errors.WithStack(err)
 	}
 

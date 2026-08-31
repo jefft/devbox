@@ -145,6 +145,7 @@ func TestShippedPluginsDataAndLogDirs(t *testing.T) {
 	}{
 		{"mariadb.json", "mariadb", "MYSQL_DATADIR", "", ""},
 		{"mysql.json", "mysql", "MYSQL_DATADIR", "", ""},
+		{"nginx.json", "nginx", "", "NGINX_LOGDIR", ""},
 		{"php.json", "php", "", "PHPFPM_ERROR_LOG_FILE", "php-fpm.log"},
 		{"postgresql.json", "postgresql", "PGDATA", "", ""},
 	} {
@@ -198,7 +199,7 @@ func TestShippedPluginYamlsRenderCleanly(t *testing.T) {
 			t.Fatalf("%s: parse: %v", dir.Name(), err)
 		}
 		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, templateVars(deep, dir.Name())); err != nil {
+		if err := tmpl.Execute(&buf, TemplateVars(deep, dir.Name())); err != nil {
 			t.Fatalf("%s: render: %v", dir.Name(), err)
 		}
 		rendered := buf.String()

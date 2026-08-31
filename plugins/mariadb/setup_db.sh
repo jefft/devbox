@@ -8,7 +8,10 @@ if [ -d "$OLD_DATA_DIR" ] && [ -z "$(ls -A "$MYSQL_DATADIR" 2>/dev/null)" ]; the
   mv "$OLD_DATA_DIR" "$MYSQL_DATADIR"
 fi
 
-if [ ! -d "$MYSQL_DATADIR" ]; then
+# Check for the system schema ('mysql' db), not the datadir itself: since the
+# 0.0.8 directory lifecycle, devbox pre-creates an empty $MYSQL_DATADIR before
+# init hooks run, which made the old '[ ! -d ]' guard skip mariadb-install-db.
+if [ ! -d "$MYSQL_DATADIR/mysql" ]; then
   # Install the Database
   #   --auth-root-authentication-method=normal creates a 'root' user with blank password.
     mariadb-install-db --auth-root-authentication-method=normal \

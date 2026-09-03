@@ -13,8 +13,6 @@
         "PGHOST": "{{ .RuntimeDir }}"
     },
     "create_files": {
-        "{{ .DataDir }}": "",
-        "{{ .RuntimeDir }}": "",
         "{{ .Virtenv }}/process-compose.yaml": "postgresql/process-compose.yaml",
         "{{ .Virtenv }}/setup_db.sh": "postgresql/setup_db.sh"
     },

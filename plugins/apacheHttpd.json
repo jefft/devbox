@@ -5,8 +5,8 @@
   "env": {
     "HTTPD_DEVBOX_CONFIG_DIR": "{{ .DevboxProjectDir }}",
     "HTTPD_CONFDIR": "{{ .DevboxDir }}",
-    "HTTPD_ERROR_LOG_FILE": "{{ .Virtenv }}/error.log",
-    "HTTPD_ACCESS_LOG_FILE": "{{ .Virtenv }}/access.log",
+    "HTTPD_ERROR_LOG_FILE": "{{ .LogDir }}/error.log",
+    "HTTPD_ACCESS_LOG_FILE": "{{ .LogDir }}/access.log",
     "HTTPD_PORT": "8080"
   },
   "create_files": {

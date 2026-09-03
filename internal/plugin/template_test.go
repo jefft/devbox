@@ -143,6 +143,8 @@ func TestShippedPluginsDataAndLogDirs(t *testing.T) {
 	for _, testCase := range []struct {
 		file, plugin, dataEnv, logEnv, logFile string
 	}{
+		{"apacheHttpd.json", "apache", "", "HTTPD_ERROR_LOG_FILE", "error.log"},
+		{"caddy.json", "caddy", "", "CADDY_LOG_DIR", ""},
 		{"mariadb.json", "mariadb", "MYSQL_DATADIR", "", ""},
 		{"mysql.json", "mysql", "MYSQL_DATADIR", "", ""},
 		{"php.json", "php", "", "PHPFPM_ERROR_LOG_FILE", "php-fpm.log"},
@@ -221,6 +223,7 @@ func (f fakeIncludable) LockfileKey() string                { return f.name }
 // structural directories without declaring per-plugin aliases.
 func TestShippedPluginsServiceEnvContract(t *testing.T) {
 	deep := "/home/user/projects/myapp"
+	t.Setenv("XDG_RUNTIME_DIR", "/run/user/1000")
 	want := map[string]string{
 		"DEVBOX_DEV_DIR":     filepath.Join(deep, "devbox.d", "nginx"),
 		"DEVBOX_LOG_DIR":     filepath.Join(deep, ".devbox", "logs", "nginx"),
@@ -246,6 +249,16 @@ func TestShippedPluginsServiceEnvContract(t *testing.T) {
 		if !strings.Contains(buf.String(), line) {
 			t.Errorf("rendered nginx process-compose.yaml missing %q", line)
 		}
+	}
+	confContent, err := os.ReadFile(filepath.Join("..", "..", "plugins", "nginx", "nginx.conf"))
+	if err != nil {
+		t.Fatalf("read nginx.conf: %v", err)
+	}
+	// The shipped default conf renders via Go templates and must keep using
+	// {{ .LogDir }}, never the $DEVBOX_LOG_DIR envsubst mechanism that the
+	// customization template resolves at service start.
+	if !strings.Contains(string(confContent), "{{ .LogDir }}/nginx-error.log") {
+		t.Error("nginx.conf must reference {{ .LogDir }}/nginx-error.log")
 	}
 	if strings.Contains(buf.String(), "NGINX_LOGDIR") {
 		t.Error("nginx process-compose.yaml still references the removed NGINX_LOGDIR alias")

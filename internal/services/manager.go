@@ -35,6 +35,27 @@ func ensureLogsDir(projectDir string) error {
 	return errors.WithStack(os.MkdirAll(filepath.Join(projectDir, filepath.Dir(processComposeLogfile)), 0o755))
 }
 
+// ensureRuntimeDirs creates the plugin runtime directories referenced by the
+// services' DEVBOX_RUNTIME_DIR env (sockets, pid files). They live under
+// $XDG_RUNTIME_DIR (tmpfs), so a reboot wipes them, and the plugin lifecycle
+// that normally creates them (CreateFilesForConfig) is skipped when the
+// project is already up to date. Without this, services like php-fpm fail to
+// bind their sockets after a reboot.
+func ensureRuntimeDirs(svcs Services) error {
+	ensured := map[string]bool{}
+	for _, svc := range svcs {
+		dir := svc.Env["DEVBOX_RUNTIME_DIR"]
+		if dir == "" || !filepath.IsAbs(dir) || ensured[dir] {
+			continue
+		}
+		ensured[dir] = true
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
 type instance struct {
 	Pid  int `json:"pid"`
 	Port int `json:"port"`
@@ -134,6 +155,12 @@ func StartProcessManager(
 
 	// The log files live in .devbox/logs, which may not exist yet.
 	if err := ensureLogsDir(projectDir); err != nil {
+		return err
+	}
+
+	// The runtime dirs live on tmpfs and vanish on reboot; recreate them
+	// before any service tries to bind a socket or write a pid file.
+	if err := ensureRuntimeDirs(availableServices); err != nil {
 		return err
 	}
 

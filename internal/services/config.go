@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/f1bonacc1/process-compose/src/types"
 	"github.com/pkg/errors"
@@ -68,15 +69,34 @@ func FromProcessCompose(path string) (Services, error) {
 		return nil, err
 	}
 
-	for name := range processCompose.Processes {
+	// Every process inherits the project-level environment, overlaid with
+	// its own. Devbox relies on this to find structural paths like
+	// DEVBOX_RUNTIME_DIR regardless of which process declared them.
+	projectEnv := envMap(processCompose.Environment)
+	for name, proc := range processCompose.Processes {
+		env := maps.Clone(projectEnv)
+		maps.Copy(env, envMap(proc.Environment))
 		svc := Service{
 			Name:               name,
 			ProcessComposePath: path,
+			Env:                env,
 		}
 		services[name] = svc
 	}
 
 	return services, nil
+}
+
+// envMap parses a process-compose Environment list of "KEY=VALUE" entries
+// into a map. Entries without "=" are ignored.
+func envMap(env types.Environment) map[string]string {
+	m := make(map[string]string, len(env))
+	for _, kv := range env {
+		if k, v, ok := strings.Cut(kv, "="); ok {
+			m[k] = v
+		}
+	}
+	return m
 }
 
 func NamesFromProcessCompose(content []byte) ([]string, error) {

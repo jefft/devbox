@@ -29,6 +29,11 @@ var tmplFS embed.FS
 func GenerateForPrintEnv(ctx context.Context, devbox devboxer) error {
 	defer trace.StartRegion(ctx, "GenerateForPrintEnv").End()
 
+	// Gitignore file is added to the .devbox directory. Written first so it is
+	// the first entry created there, even for direct callers of this function.
+	if err := WriteGitignore(devbox.ProjectDir()); err != nil {
+		return err
+	}
 	plan, err := newFlakePlan(ctx, devbox)
 	if err != nil {
 		return err
@@ -38,12 +43,6 @@ func GenerateForPrintEnv(ctx context.Context, devbox devboxer) error {
 
 	// Preserving shell.nix to avoid breaking old-style .envrc users
 	_, err = writeFromTemplate(outPath, plan, "shell.nix", "shell.nix")
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	// Gitignore file is added to the .devbox directory
-	_, err = writeFromTemplate(filepath.Join(devbox.ProjectDir(), ".devbox"), plan, ".gitignore", ".gitignore")
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -62,6 +61,15 @@ func GenerateForPrintEnv(ctx context.Context, devbox devboxer) error {
 	}
 
 	return WriteScriptsToFiles(devbox)
+}
+
+// WriteGitignore writes .devbox/.gitignore, which ignores the entire .devbox
+// directory. It creates .devbox if needed and is a no-op if the file is
+// already up to date. It can be called before anything else creates .devbox
+// to guarantee .gitignore is its first entry.
+func WriteGitignore(projectDir string) error {
+	_, err := writeFromTemplate(filepath.Join(projectDir, ".devbox"), nil, ".gitignore", ".gitignore")
+	return errors.WithStack(err)
 }
 
 // Cache and buffers for generating templated files.

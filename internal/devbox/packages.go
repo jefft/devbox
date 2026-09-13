@@ -336,6 +336,10 @@ func (d *Devbox) ensureStateIsUpToDate(ctx context.Context, mode installMode) er
 	}
 
 	if mode == install || mode == update || mode == ensure {
+		// Write .gitignore first so it is the first entry created in .devbox.
+		if err := shellgen.WriteGitignore(d.projectDir); err != nil {
+			return err
+		}
 		if err := d.installPackages(ctx, mode); err != nil {
 			return err
 		}

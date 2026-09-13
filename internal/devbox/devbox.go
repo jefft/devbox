@@ -286,6 +286,11 @@ func (d *Devbox) RunScript(ctx context.Context, envOpts devopt.EnvOptions, cmdNa
 	ctx, task := trace.NewTask(ctx, "devboxRun")
 	defer task.End()
 
+	// Ensure .gitignore is the first entry created in .devbox, even though
+	// this command writes script files before project state is ensured.
+	if err := shellgen.WriteGitignore(d.projectDir); err != nil {
+		return err
+	}
 	if err := shellgen.WriteScriptsToFiles(d); err != nil {
 		return err
 	}

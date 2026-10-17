@@ -6,25 +6,31 @@ package devbox
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/mod/modfile"
+	"golang.org/x/mod/module"
 )
 
-const processComposeModulePath = "github.com/f1bonacc1/process-compose"
+const (
+	processComposeModulePath = "github.com/f1bonacc1/process-compose"
+	processComposeForkPath   = "github.com/jefft/process-compose"
+)
 
-// TestProcessComposeVersionMatchesGoMod guards against drift between the
-// process-compose binary we install into the global utility project and the
+// TestProcessComposeRevMatchesGoMod guards against drift between the
+// process-compose daemon we install into the global utility project and the
 // process-compose library we compile against. The two are separate pins that
 // nothing else keeps in sync, and they silently diverged once already: go.mod
-// sat at v1.64.1 while processComposeVersion had moved on to 1.110.0.
+// sat at v1.64.1 while the installed binary had moved on to 1.110.0.
 //
 // Skew matters because internal/services decodes the running daemon's REST
 // responses into the library's types (types.ProcessesState and friends). If the
-// two versions disagree about a JSON tag, `devbox services ls` misreports state
-// instead of failing loudly.
-func TestProcessComposeVersionMatchesGoMod(t *testing.T) {
+// two disagree about a JSON tag, `devbox services ls` misreports state instead
+// of failing loudly. Both pins name a commit of the fork, so they must name the
+// same one.
+func TestProcessComposeRevMatchesGoMod(t *testing.T) {
 	goModPath := findGoMod(t)
 
 	data, err := os.ReadFile(goModPath)
@@ -33,20 +39,24 @@ func TestProcessComposeVersionMatchesGoMod(t *testing.T) {
 	f, err := modfile.Parse(goModPath, data, nil)
 	require.NoError(t, err, "parse %s", goModPath)
 
-	var got string
-	for _, r := range f.Require {
-		if r.Mod.Path == processComposeModulePath {
-			got = r.Mod.Version
+	var replacement *module.Version
+	for _, r := range f.Replace {
+		if r.Old.Path == processComposeModulePath {
+			replacement = &r.New
 			break
 		}
 	}
-	require.NotEmpty(t, got, "%s not found in %s", processComposeModulePath, goModPath)
+	require.NotNil(t, replacement, "no replace for %s in %s", processComposeModulePath, goModPath)
+	require.Equal(t, processComposeForkPath, replacement.Path)
 
-	want := "v" + processComposeVersion
-	require.Equal(t, want, got,
-		"process-compose version skew: processComposeVersion is %q (internal/devbox/util.go) "+
-			"but go.mod requires %s %s. Bump both to the same version.",
-		processComposeVersion, processComposeModulePath, got)
+	rev, err := module.PseudoVersionRev(replacement.Version)
+	require.NoError(t, err, "replace target %s is not a pseudo-version", replacement.Version)
+
+	require.Len(t, processComposeRev, 40, "processComposeRev must be a full commit hash")
+	require.True(t, strings.HasPrefix(processComposeRev, rev),
+		"process-compose pin skew: processComposeRev is %s (internal/devbox/util.go) "+
+			"but go.mod replaces %s with %s@%s. Point both at the same commit.",
+		processComposeRev, processComposeModulePath, processComposeForkPath, replacement.Version)
 }
 
 // findGoMod walks up from the working directory to locate the module's go.mod,

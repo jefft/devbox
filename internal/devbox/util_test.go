@@ -12,7 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
+
+	"go.jetify.com/devbox/internal/devpkg"
+	"go.jetify.com/devbox/internal/lock"
+	"go.jetify.com/devbox/nix/flake"
 )
+
+// testLocker satisfies lock.Locker for package construction only. The
+// utility-removal logic never resolves a package.
+type testLocker struct{}
+
+func (testLocker) Get(string) *lock.Package              { return nil }
+func (testLocker) Resolve(string) (*lock.Package, error) { return nil, nil }
+func (testLocker) ProjectDir() string                    { return "" }
+func (testLocker) Stdenv() flake.Ref                     { return flake.Ref{} }
 
 const (
 	processComposeModulePath = "github.com/f1bonacc1/process-compose"
@@ -57,6 +70,35 @@ func TestProcessComposeRevMatchesGoMod(t *testing.T) {
 		"process-compose pin skew: processComposeRev is %s (internal/devbox/util.go) "+
 			"but go.mod replaces %s with %s@%s. Point both at the same commit.",
 		processComposeRev, processComposeModulePath, processComposeForkPath, replacement.Version)
+}
+
+// TestUtilityPackagesToRemove ensures that only previous process-compose
+// packagings are removed from the shared utility project. Everything else in
+// that user-writable project must survive, and the desired package must never
+// be selected for removal.
+func TestUtilityPackagesToRemove(t *testing.T) {
+	rawPackages := []string{
+		processComposeFlake,
+		"process-compose@1.122.0",
+		"github:jefft/process-compose/0123456789abcdef0123456789abcdef01234567",
+		"nixpkgs#process-compose",
+		"github:foo/bar#process-compose",
+		"hello@1.0",
+		"github:foo/bar/0123456789abcdef0123456789abcdef01234567",
+	}
+	pkgs := make([]*devpkg.Package, 0, len(rawPackages))
+	for _, raw := range rawPackages {
+		pkgs = append(pkgs, devpkg.PackageFromStringWithDefaults(raw, testLocker{}))
+	}
+
+	got := utilityPackagesToRemove(pkgs, []string{processComposeFlake})
+
+	require.ElementsMatch(t, []string{
+		"process-compose@1.122.0",
+		"github:jefft/process-compose/0123456789abcdef0123456789abcdef01234567",
+		"nixpkgs#process-compose",
+		"github:foo/bar#process-compose",
+	}, got)
 }
 
 // findGoMod walks up from the working directory to locate the module's go.mod,

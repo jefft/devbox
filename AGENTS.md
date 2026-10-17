@@ -13,8 +13,10 @@ Fork-specific invariants that ARE worth knowing even without the local file:
 
 - `go.mod` pins `github.com/f1bonacc1/process-compose` to a
   `github.com/jefft/process-compose` pseudo-version (a fork rebased onto an
-  upstream tag). The `require` version and the
-  `internal/devbox/util.go` `processComposeVersion` const must stay equal —
-  `TestProcessComposeVersionMatchesGoMod` enforces it.
+  upstream tag). `devbox services` runs the daemon from the same fork: the
+  global utility project installs the flake
+  `github:jefft/process-compose/<processComposeRev>` (`internal/devbox/util.go`).
+  The replace's commit and `processComposeRev` must be the same commit —
+  `TestProcessComposeRevMatchesGoMod` enforces it.
 - `AGENTS.local.md` is git-ignored on purpose (see `.gitignore`); don't
   "helpfully" commit it.

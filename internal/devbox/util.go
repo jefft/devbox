@@ -10,10 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"go.jetify.com/devbox/internal/devbox/devopt"
+	"go.jetify.com/devbox/internal/devpkg"
 	"go.jetify.com/devbox/internal/nix"
 	"go.jetify.com/devbox/internal/xdg"
 	"go.jetify.com/devbox/nix/flake"
@@ -28,6 +30,10 @@ import (
 const processComposeRev = "067cb68aceba85edf3c7ce8fd6bc6b5616410e9d"
 
 const processComposeFlake = "github:jefft/process-compose/" + processComposeRev
+
+// processComposeName is the canonical package name and flake attribute/repo
+// name shared by every packaging of process-compose.
+const processComposeName = "process-compose"
 
 var utilProjectConfigPath string
 
@@ -50,17 +56,17 @@ func initDevboxUtilityProject(ctx context.Context, stderr io.Writer) error {
 		processComposeFlake,
 	}
 
-	// The utility project holds exactly the utilities above. Remove anything
-	// else (e.g. the previous process-compose pin after a bump): two
-	// process-compose packages would collide in the profile's bin directory.
+	// Remove previous process-compose packages (e.g. the nixhub pin or an
+	// older fork revision): two process-compose packages would collide in the
+	// profile's bin directory. Only process-compose is removed; the utility
+	// project is shared by every devbox version and is user-writable, so
+	// unrelated utilities are left alone.
+	topLevel := box.TopLevelPackages()
 	existing := []string{}
-	stale := []string{}
-	for _, p := range box.TopLevelPackages() {
+	for _, p := range topLevel {
 		existing = append(existing, p.Raw)
-		if !slices.Contains(utilities, p.Raw) {
-			stale = append(stale, p.Raw)
-		}
 	}
+	stale := utilityPackagesToRemove(topLevel, utilities)
 
 	// Skip Add for utilities already in the config; calling Add anyway would
 	// print noisy "Package already in devbox.json" messages on every services
@@ -93,6 +99,44 @@ func initDevboxUtilityProject(ctx context.Context, stderr io.Writer) error {
 	}
 
 	return box.Install(ctx)
+}
+
+// utilityPackagesToRemove returns the configured packages that must be
+// removed before the desired utilities are added. Only previous
+// process-compose packages are returned: the utility project is shared by all
+// devbox versions and is user-writable, so unrelated utilities are preserved.
+func utilityPackagesToRemove(pkgs []*devpkg.Package, desired []string) []string {
+	stale := []string{}
+	for _, p := range pkgs {
+		if slices.Contains(desired, p.Raw) {
+			continue
+		}
+		if isProcessComposePackage(p) {
+			stale = append(stale, p.Raw)
+		}
+	}
+	return stale
+}
+
+// isProcessComposePackage reports whether p is any process-compose package,
+// whether named canonically (the nixhub package "process-compose@<version>")
+// or through a flake's attribute path or repository name (a fork revision or
+// an installable such as nixpkgs#process-compose).
+func isProcessComposePackage(p *devpkg.Package) bool {
+	if p.CanonicalName() == processComposeName {
+		return true
+	}
+
+	installable, err := flake.ParseInstallable(p.Raw)
+	if err != nil {
+		return false
+	}
+	if attrPath := installable.AttrPath; attrPath != "" {
+		if attrPath[strings.LastIndex(attrPath, ".")+1:] == processComposeName {
+			return true
+		}
+	}
+	return installable.Ref.Repo == processComposeName
 }
 
 // prefetchUtilities resolves each remote flake in utilities so that a fetch

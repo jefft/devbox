@@ -52,7 +52,8 @@ func FromProjectProcessComposes(dirs []string) (Services, error) {
 			if prev, ok := origins[name]; ok {
 				return nil, usererr.New(
 					"service %q is defined by two project process-compose files: %q and %q",
-					name, prev, path)
+					name, prev, path,
+				)
 			}
 			origins[name] = path
 		}

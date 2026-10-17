@@ -61,7 +61,8 @@ func resolveDescriptorPath(base string) (string, error) {
 		}
 	}
 	return "", errors.Errorf(
-		"no %s or %s found in %q", configfile.DefaultName, pluginConfigName, base)
+		"no %s or %s found in %q", configfile.DefaultName, pluginConfigName, base,
+	)
 }
 
 func (plugin *LocalPlugin) Fetch() ([]byte, error) {

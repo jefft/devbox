@@ -262,14 +262,16 @@ func (c *Config) validateIncludeTree() error {
 			if _, ok := cfg.Source.(*devpkg.Package); !ok {
 				return usererr.New(
 					"__remove_trigger_package in %s is only valid for built-in plugins",
-					cfg.Root.AbsRootPath)
+					cfg.Root.AbsRootPath,
+				)
 			}
 		}
 		if pinned := cfg.Root.NixPkgsCommitHash(); pinned != "" &&
 			rootPinned != "" && pinned != rootPinned {
 			return usererr.New(
 				"%s pins nixpkgs %q but the project pins %q",
-				cfg.Root.AbsRootPath, pinned, rootPinned)
+				cfg.Root.AbsRootPath, pinned, rootPinned,
+			)
 		}
 		name := cfg.Source.CanonicalName()
 		key := cfg.Source.LockfileKey()
@@ -280,7 +282,8 @@ func (c *Config) validateIncludeTree() error {
 			return usererr.New(
 				"two different includes named %q both create files and would "+
 					"collide in the same directory: %q and %q",
-				name, prev.key, key)
+				name, prev.key, key,
+			)
 		}
 		canonNames[name] = includeInfo{key: key, hasCreateFiles: hasCreateFiles, cfg: cfg}
 		for _, i := range cfg.included {

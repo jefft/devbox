@@ -45,3 +45,6 @@ result
 
 # Devbox generated state (virtenv, plugin-created files)
 .devbox/
+AGENTS.md
+# Machine-local agent notes (see AGENTS.md)
+AGENTS.local.md

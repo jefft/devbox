@@ -20,13 +20,15 @@ func GetServices(configs []*Config) (services.Services, error) {
 		if err != nil {
 			return nil, usererr.New(
 				"reading services in %q (from %s): %v",
-				conf.Source.CanonicalName(), conf.Source.LockfileKey(), err)
+				conf.Source.CanonicalName(), conf.Source.LockfileKey(), err,
+			)
 		}
 		for name := range svcs {
 			if prev, ok := origins[name]; ok {
 				return nil, usererr.New(
 					"service %q is defined by two includes: %q and %q",
-					name, prev, conf.Source.LockfileKey())
+					name, prev, conf.Source.LockfileKey(),
+				)
 			}
 			origins[name] = conf.Source.LockfileKey()
 		}

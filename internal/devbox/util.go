@@ -14,7 +14,9 @@ import (
 	"github.com/pkg/errors"
 
 	"go.jetify.com/devbox/internal/devbox/devopt"
+	"go.jetify.com/devbox/internal/nix"
 	"go.jetify.com/devbox/internal/xdg"
+	"go.jetify.com/devbox/nix/flake"
 )
 
 // processComposeRev is the github.com/jefft/process-compose commit that runs
@@ -51,9 +53,6 @@ func initDevboxUtilityProject(ctx context.Context, stderr io.Writer) error {
 	// The utility project holds exactly the utilities above. Remove anything
 	// else (e.g. the previous process-compose pin after a bump): two
 	// process-compose packages would collide in the profile's bin directory.
-	// Skip Add for utilities already in the config; calling Add anyway would
-	// print noisy "Package already in devbox.json" messages on every services
-	// interaction.
 	existing := []string{}
 	stale := []string{}
 	for _, p := range box.TopLevelPackages() {
@@ -62,15 +61,29 @@ func initDevboxUtilityProject(ctx context.Context, stderr io.Writer) error {
 			stale = append(stale, p.Raw)
 		}
 	}
-	if len(stale) > 0 {
-		if err = box.Remove(ctx, stale...); err != nil {
-			return err
-		}
-	}
+
+	// Skip Add for utilities already in the config; calling Add anyway would
+	// print noisy "Package already in devbox.json" messages on every services
+	// interaction.
 	toAdd := []string{}
 	for _, u := range utilities {
 		if !slices.Contains(existing, u) {
 			toAdd = append(toAdd, u)
+		}
+	}
+
+	// Fetch the new flake before removing anything. The profile is shared by
+	// every project, so an offline or otherwise failed fetch must not leave it
+	// without process-compose.
+	if len(toAdd) > 0 {
+		if err = prefetchUtilities(ctx, toAdd); err != nil {
+			return err
+		}
+	}
+
+	if len(stale) > 0 {
+		if err = box.Remove(ctx, stale...); err != nil {
+			return err
 		}
 	}
 	if len(toAdd) > 0 {
@@ -80,6 +93,22 @@ func initDevboxUtilityProject(ctx context.Context, stderr io.Writer) error {
 	}
 
 	return box.Install(ctx)
+}
+
+// prefetchUtilities resolves each remote flake in utilities so that a fetch
+// failure happens before the shared utility profile is modified. Package
+// types other than remote flakes are validated by Add itself.
+func prefetchUtilities(ctx context.Context, utilities []string) error {
+	for _, u := range utilities {
+		installable, err := flake.ParseInstallable(u)
+		if err != nil || installable.Ref.Type == flake.TypePath {
+			continue
+		}
+		if _, err := nix.ResolveFlake(ctx, installable.Ref, false); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
 }
 
 func ensureDevboxUtilityConfig() (string, error) {

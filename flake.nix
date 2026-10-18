@@ -17,7 +17,7 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        lastTag = "0.18.5-jethro";
+        lastTag = "0.18.5-jethro.2";
 
         revision = if (self ? shortRev) then "${self.shortRev}" else "${self.dirtyShortRev or "dirty"}";
 
@@ -27,7 +27,7 @@
         # Run `devbox run update-flake` to update the vendor-hash
         vendorHash = if builtins.pathExists ./vendor-hash then builtins.readFile ./vendor-hash else "";
 
-        buildGoModule = pkgs.buildGo127Module;
+        buildGoModule = pkgs.buildGo126Module;
 
       in
       {

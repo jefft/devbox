@@ -24,7 +24,6 @@ processes:
         host: localhost
         port: ${NGINX_WEB_PORT}
         path: /
-      initial_delay_seconds: 1
   nginx-error:
     # DEVBOX_* are the structural directories of this plugin's includable,
     # rendered by devbox when this file is materialized (create_files runs

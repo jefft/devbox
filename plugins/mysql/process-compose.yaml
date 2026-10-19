@@ -25,7 +25,7 @@ processes:
     readiness_probe:
       exec:
         command: "mysqladmin ping"
-      initial_delay_seconds: 2
+      startup_fail_after_seconds: 120
   mysql_logs:
     command: "tail -f \"{{ .LogDir }}/mysql.log\""
     availability:

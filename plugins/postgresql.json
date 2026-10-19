@@ -1,6 +1,6 @@
 {
     "name": "postgresql",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "To initialize the database run `initdb`.",
     "packages": {
         "glibcLocales": {

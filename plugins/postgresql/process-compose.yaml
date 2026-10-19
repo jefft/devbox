@@ -22,4 +22,4 @@ processes:
     readiness_probe:
       exec:
         command: "pg_isready -p \"${PGPORT:-5432}\""
-      initial_delay_seconds: 2
+      startup_fail_after_seconds: 120

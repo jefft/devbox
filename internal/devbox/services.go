@@ -265,7 +265,7 @@ func (d *Devbox) StartProcessManager(
 
 	// Start the process manager
 
-	return services.StartProcessManager(
+	err = services.StartProcessManager(
 		d.stderr,
 		requestedServices,
 		svcs,
@@ -277,6 +277,15 @@ func (d *Devbox) StartProcessManager(
 			ProcessComposePort: processComposeOpts.ProcessComposePort,
 		},
 	)
+	if err != nil {
+		return err
+	}
+	if services.ProcessManagerIsRunning(d.projectDir) {
+		if err := services.PrintServicePorts(ctx, d.stderr, d.projectDir, processComposeBinPath); err != nil {
+			fmt.Fprintf(d.stderr, "Warning: unable to report service ports: %s\n", err)
+		}
+	}
+	return nil
 }
 
 // runDevboxServicesScript invokes RunScript with the envOptions set to the appropriate

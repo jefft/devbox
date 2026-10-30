@@ -169,6 +169,20 @@ See the
 [CLI Reference](https://www.jetify.com/docs/devbox/cli-reference/devbox) for
 the full list of commands.
 
+### Service listening ports
+
+This fork reports TCP ports after `devbox services up -b` starts its services,
+and after a foreground process-compose session detaches while leaving services
+running. Devbox waits up to ten seconds for the API and service readiness, then
+runs `process-compose process ports` for each running service, including
+dependencies and replicas. Port-query failures produce a warning without
+turning a successful service launch into a failure.
+
+The report is a snapshot. Configure a readiness probe or `ready_log_line` for
+servers that take time to bind; without one, a process may be considered ready
+before its ports are open. The underlying command currently reports TCP only.
+Normal foreground sessions do not print ports after shutdown.
+
 ## Join our Developer Community
 
 - Chat with us by joining the [Devbox Discord Server](https://discord.gg/agbskCJXk2)

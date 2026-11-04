@@ -17,7 +17,7 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        lastTag = "0.19.0-jethro.1";
+        lastTag = "0.19.0-jethro.2";
 
         revision = if (self ? shortRev) then "${self.shortRev}" else "${self.dirtyShortRev or "dirty"}";
 

@@ -152,20 +152,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TELEMETRY_KEY: ${{ secrets.TELEMETRY_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      # `release.disable` is set in .goreleaser.yaml, so goreleaser only builds
-      # dist/ — the GitHub release belongs to this step. Both ways of cutting a
-      # release land here and both work:
-      #
-      #   * `devbox run draft-release` created the draft, with its real title and
-      #     hand-written notes, before pushing the tag. We upload onto it.
-      #   * the tag was pushed by hand with no draft. We create one, titled after
-      #     the tag with GitHub's generated notes, and upload onto that. It stays
-      #     a draft for a human to retitle, rewrite and publish.
-      #
-      # Either way the release is looked up by tag, so a tag always resolves to
-      # exactly one release. goreleaser used to do this itself, but it matched
-      # existing drafts by *title*, so any release with a real title went
-      # unmatched and got a silent duplicate. See .goreleaser.yaml.
+      # Goreleaser builds dist/ with release.disable. Look up releases by tag,
+      # preserving any pre-created draft's title and notes. A tag push publishes
+      # only after all artifact uploads succeed; manual dispatch leaves drafts alone.
       - name: Attach artifacts to the release for this tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -174,8 +163,7 @@ jobs:
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release for $TAG already exists — attaching artifacts to it."
           else
-            echo "No release for $TAG (tag pushed outside draft-release?) —" \
-                 "creating a draft for it."
+            echo "No release for $TAG — creating a draft before uploading artifacts."
             # Same rule as release.ts: a semver prerelease is anything with a "-".
             prerelease=()
             case "$TAG" in *-*) prerelease=(--prerelease) ;; esac
@@ -186,6 +174,12 @@ jobs:
           # failing on the ones already uploaded.
           gh release upload "$TAG" dist/*.tar.gz dist/checksums.txt \
             --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Publish release after artifact upload
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
       - name: Notify jetpack.io slack of release status
         # Non-blocking: forks won't have the Slack webhook secret.
         continue-on-error: true

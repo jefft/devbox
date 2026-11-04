@@ -797,6 +797,11 @@ func (d *Devbox) computeEnv(
 	env["DEVBOX_WD"] = wd
 	env["DEVBOX_CONFIG_DIR"] = d.projectDir + "/devbox.d"
 	env["DEVBOX_PACKAGES_DIR"] = d.projectDir + "/" + nix.ProfilePath
+	// Use the same directory layout as plugin templates, without a plugin suffix.
+	projectPaths := plugin.TemplateDataFor(d.projectDir, "")
+	env["DEVBOX_RUNTIME_DIR"] = projectPaths.RuntimeDir
+	env["DEVBOX_LOG_DIR"] = projectPaths.LogDir
+	env["DEVBOX_DATA_DIR"] = projectPaths.DataDir
 
 	// Include env variables in devbox.json
 	configEnv, err := d.configEnvs(env)

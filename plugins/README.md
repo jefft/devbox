@@ -71,6 +71,29 @@ Devbox's Plugin System provides a few special placeholders that should be used w
 * `{{ .LogDir }}` – points to `<projectDir>/.devbox/logs/<plugin_name>`, the unified logs location. Logs are persistent (crash logs are most valuable after a reboot), project-local, and gitignored.
 * `{{ .RuntimeDir }}` – points to a short, per-plugin directory outside the project (`$XDG_RUNTIME_DIR/devbox/<project-hash>/<plugin_name>`, falling back to the temp dir) for ephemeral runtime files: unix domain sockets and pid files. Unix socket paths are limited to ~107 characters on Linux (104 on macOS), which paths under deeply nested project directories can easily exceed. The directory is not persistent: when `$XDG_RUNTIME_DIR` is set it lives on tmpfs and may be wiped on reboot, and it is recreated automatically on shell init and service start. Keep only regenerable files here — never data or logs.
 
+### Project directory environment
+
+Shells, scripts, and project-defined services receive the following variables before
+`devbox.json`'s `env` entries are expanded:
+
+| Variable | Project path |
+| --- | --- |
+| `DEVBOX_RUNTIME_DIR` | `$XDG_RUNTIME_DIR/devbox/<project-hash>` (with the same temp-dir fallback as `.RuntimeDir`) |
+| `DEVBOX_LOG_DIR` | `<projectDir>/.devbox/logs` |
+| `DEVBOX_DATA_DIR` | `<projectDir>/.devbox/data` |
+
+These are calculated by `plugin.TemplateDataFor(projectDir, "")`, using the same
+layout as plugin templates but without the plugin-name suffix. Values inherited
+from another project are replaced. Project configuration can reference them, for
+example `"MAILPIT_SOCKET_DIR": "$DEVBOX_RUNTIME_DIR/mailpit"`.
+
+Plugin services retain their plugin-specific `DEVBOX_RUNTIME_DIR`, `DEVBOX_LOG_DIR`,
+and `DEVBOX_DATA_DIR` values through their process-level environment. Exporting the
+project paths does not itself create directories; custom services must create their
+runtime subdirectories privately before use and recreate them after runtime storage
+is cleared.
+
+
 ### Fields
 
 #### `name` *string*

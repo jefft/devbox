@@ -4,10 +4,13 @@
 package boxcli
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.jetify.com/devbox/internal/devbox"
 	"go.jetify.com/devbox/internal/devbox/devopt"
+	"go.jetify.com/devbox/internal/ux"
 )
 
 type servicesCmdFlags struct {
@@ -269,7 +272,7 @@ func startProcessManager(
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	verbose, _ := cmd.Root().PersistentFlags().GetBool("verbose")
+	verbose := os.Getenv(ux.LogLevelEnv) == "INFO"
 	return box.StartProcessManager(
 		cmd.Context(),
 		servicesFlags.runInCurrentShell,

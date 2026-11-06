@@ -169,6 +169,22 @@ See the
 [CLI Reference](https://www.jetify.com/docs/devbox/cli-reference/devbox) for
 the full list of commands.
 
+### Diagnostic verbosity
+
+`--loglevel=WARN` is the default: severity-labelled `ux` messages show warnings
+and errors, but hide routine `Info:` messages such as `Running script ...`.
+Use `--loglevel=INFO` to include those messages or `--loglevel=ERROR` to hide
+warnings too. Values are case-insensitive; other levels are rejected.
+`DEVBOX_LOG_LEVEL` supplies the default and carries the chosen level into
+nested Devbox invocations. An explicit flag overrides the environment.
+
+`--verbose` selects INFO unless an explicit `--loglevel` is supplied.
+The existing `devbox version --verbose` still requests detailed version fields.
+`--quiet` continues to suppress command diagnostics through its stderr writer.
+Command results, success confirmations, hook output, and child-process output
+are not severity-labelled diagnostics and are not filtered by `--loglevel`.
+Existing diagnostic/debug logging controlled by `--debug` is unchanged.
+
 ### Startup hook messages
 
 After a background `devbox services up -b`, this fork prints process-compose

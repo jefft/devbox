@@ -7,15 +7,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/fatih/color"
 )
 
 var (
-	success = color.New(color.FgHiGreen)
-	info    = color.New(color.FgYellow)
-	warning = color.New(color.FgHiYellow)
-	error   = color.New(color.FgHiRed)
+	success    = color.New(color.FgHiGreen)
+	info       = color.New(color.FgYellow)
+	warning    = color.New(color.FgHiYellow)
+	errorColor = color.New(color.FgHiRed)
 )
 
 func Fsuccess(w io.Writer, a ...any) {
@@ -29,32 +30,50 @@ func Fsuccessf(w io.Writer, format string, a ...any) {
 }
 
 func Finfo(w io.Writer, a ...any) {
+	if !logEnabled(slog.LevelInfo) {
+		return
+	}
 	info.Fprint(w, "Info: ")
 	fmt.Fprint(w, a...)
 }
 
 func Finfof(w io.Writer, format string, a ...any) {
+	if !logEnabled(slog.LevelInfo) {
+		return
+	}
 	info.Fprint(w, "Info: ")
 	fmt.Fprintf(w, format, a...)
 }
 
 func Fwarning(w io.Writer, a ...any) {
+	if !logEnabled(slog.LevelWarn) {
+		return
+	}
 	warning.Fprint(w, "Warning: ")
 	fmt.Fprint(w, a...)
 }
 
 func Fwarningf(w io.Writer, format string, a ...any) {
+	if !logEnabled(slog.LevelWarn) {
+		return
+	}
 	warning.Fprint(w, "Warning: ")
 	fmt.Fprintf(w, format, a...)
 }
 
 func Ferror(w io.Writer, a ...any) {
-	error.Fprint(w, "Error: ")
+	if !logEnabled(slog.LevelError) {
+		return
+	}
+	errorColor.Fprint(w, "Error: ")
 	fmt.Fprint(w, a...)
 }
 
 func Ferrorf(w io.Writer, format string, a ...any) {
-	error.Fprint(w, "Error: ")
+	if !logEnabled(slog.LevelError) {
+		return
+	}
+	errorColor.Fprint(w, "Error: ")
 	fmt.Fprintf(w, format, a...)
 }
 

@@ -18,6 +18,7 @@ import (
 	"go.jetify.com/devbox/internal/debug"
 	"go.jetify.com/devbox/internal/launcher"
 	"go.jetify.com/devbox/internal/telemetry"
+	"go.jetify.com/devbox/internal/ux"
 	"go.jetify.com/devbox/internal/vercheck"
 )
 
@@ -27,8 +28,9 @@ var (
 )
 
 type rootCmdFlags struct {
-	quiet   bool
-	verbose bool
+	quiet    bool
+	verbose  bool
+	loglevel string
 }
 
 func RootCmd() *cobra.Command {
@@ -41,11 +43,22 @@ func RootCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "devbox",
 		Short: "Instant, easy, predictable development environments",
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			level := flags.loglevel
+			if flags.verbose && !cmd.Root().PersistentFlags().Changed("loglevel") {
+				level = "INFO"
+			}
+			if err := ux.SetLogLevel(level); err != nil {
+				return err
+			}
+			if err := os.Setenv(ux.LogLevelEnv, strings.ToUpper(level)); err != nil {
+				return err
+			}
 			if flags.quiet {
 				cmd.SetErr(io.Discard)
 			}
 			vercheck.CheckVersion(cmd.ErrOrStderr(), cmd.CommandPath())
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
@@ -95,7 +108,14 @@ func RootCmd() *cobra.Command {
 		&flags.quiet, "quiet", "q", false, "suppresses logs",
 	)
 	command.PersistentFlags().BoolVar(
-		&flags.verbose, "verbose", false, "displays additional information",
+		&flags.verbose, "verbose", false, "show INFO diagnostics (unless --loglevel is specified)",
+	)
+	level := os.Getenv(ux.LogLevelEnv)
+	if level == "" {
+		level = "WARN"
+	}
+	command.PersistentFlags().StringVar(
+		&flags.loglevel, "loglevel", level, "diagnostic threshold: INFO, WARN, or ERROR",
 	)
 	debugMiddleware.AttachToFlag(command.PersistentFlags(), "debug")
 	traceMiddleware.AttachToFlag(command.PersistentFlags(), "trace")

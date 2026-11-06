@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func TestWaitForPortReportWaitsForStartupNotFailedServices(t *testing.T) {
+func TestWaitForStartupWaitsForReadyNotFailedServices(t *testing.T) {
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -176,7 +176,7 @@ func TestWaitForServiceStartupForegroundDoesNotReplayHookHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(states.States) != 1 {
-		t.Fatalf("foreground lost port-report snapshot: %+v", states)
+		t.Fatalf("foreground lost readiness snapshot: %+v", states)
 	}
 	if hookRequests.Load() != 0 || output.Len() != 0 {
 		t.Fatalf("replayed foreground hook history: requests=%d, output=%q", hookRequests.Load(), output.String())

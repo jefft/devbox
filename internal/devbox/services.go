@@ -281,8 +281,8 @@ func (d *Devbox) StartProcessManager(
 		return err
 	}
 	if services.ProcessManagerIsRunning(d.projectDir) {
-		if err := services.PrintServiceStartup(ctx, d.stderr, d.projectDir, processComposeBinPath, processComposeOpts.Background); err != nil {
-			fmt.Fprintf(d.stderr, "Warning: unable to report service startup: %s\n", err)
+		if err := services.PrintStartupHooks(ctx, d.stderr, d.projectDir, processComposeOpts.Background); err != nil {
+			fmt.Fprintf(d.stderr, "Warning: unable to report startup hooks: %s\n", err)
 		}
 	}
 	return nil

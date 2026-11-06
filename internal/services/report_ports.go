@@ -1,26 +1,22 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"os/exec"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/f1bonacc1/process-compose/src/types"
 )
 
-// PrintServiceStartup streams startup hooks for background launches and reports
-// the running services' ports, including dependencies and replicas. Foreground
-// sessions already display hooks, so detaching only prints the port snapshot.
+// PrintStartupHooks streams startup hook messages for background launches;
+// foreground sessions already display hooks, so detaching prints nothing.
 // The entire reporting flow shares one ten-second deadline.
-func PrintServiceStartup(ctx context.Context, w io.Writer, projectDir, binPath string, background bool) error {
+func PrintStartupHooks(ctx context.Context, w io.Writer, projectDir string, background bool) error {
 	port, err := GetProcessManagerPort(projectDir)
 	if err != nil {
 		return err
@@ -28,34 +24,14 @@ func PrintServiceStartup(ctx context.Context, w io.Writer, projectDir, binPath s
 
 	startupCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	states, err := waitForServiceStartup(startupCtx, w, port, background)
-	if err != nil {
-		return err
-	}
-	slices.SortFunc(states.States, func(a, b types.ProcessState) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	for _, state := range states.States {
-		if !state.IsRunning {
-			continue
-		}
-		queryCtx, queryCancel := context.WithTimeout(startupCtx, 2*time.Second)
-		cmd := exec.CommandContext(queryCtx, binPath, "-p", strconv.Itoa(port), "process", "ports", "--", state.Name)
-		cmd.Stdout = w
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr
-		err := cmd.Run()
-		queryCancel()
-		if err != nil {
-			return fmt.Errorf("querying ports for %s: %w: %s", state.Name, err, stderr.String())
-		}
-	}
-	return nil
+	_, err = waitForServiceStartup(startupCtx, w, port, background)
+	return err
 }
 
 // waitForServiceStartup tolerates the interval between spawning the manager and
-// its API becoming available. Background launches also wait for startup hooks:
-// readiness alone can precede their output, including the project on_ready hook.
+// its API becoming available, and waits until the selected services are ready.
+// Background launches also wait for startup hooks: readiness alone can precede
+// their output, including the project on_ready hook.
 func waitForServiceStartup(ctx context.Context, w io.Writer, port int, background bool) (*processStates, error) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()

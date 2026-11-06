@@ -4,6 +4,5 @@ exec devbox init
 
 # we could test with slack and/or vscode. Using slack since it is lighter.
 exec devbox add slack
-stderr 'Adding package "slack@latest" to devbox.json'
 
 exec devbox rm slack

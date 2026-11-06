@@ -269,7 +269,7 @@ func startProcessManager(
 	if err != nil {
 		return errors.WithStack(err)
 	}
-
+	verbose, _ := cmd.Root().PersistentFlags().GetBool("verbose")
 	return box.StartProcessManager(
 		cmd.Context(),
 		servicesFlags.runInCurrentShell,
@@ -278,6 +278,7 @@ func startProcessManager(
 			Background:         flags.background,
 			ExtraFlags:         flags.processComposeFlags,
 			ProcessComposePort: flags.pcport,
+			Verbose:            verbose,
 		},
 	)
 }

@@ -234,6 +234,9 @@ func (d *Devbox) StartProcessManager(
 		if processComposeOpts.ProcessComposePort != 0 {
 			args = append(args, "--pcport", strconv.Itoa(processComposeOpts.ProcessComposePort))
 		}
+		if processComposeOpts.Verbose {
+			args = append(args, "--verbose")
+		}
 
 		return d.runDevboxServicesScript(ctx, args)
 	}
@@ -275,6 +278,7 @@ func (d *Devbox) StartProcessManager(
 			Background:         processComposeOpts.Background,
 			ExtraFlags:         processComposeOpts.ExtraFlags,
 			ProcessComposePort: processComposeOpts.ProcessComposePort,
+			Verbose:            processComposeOpts.Verbose,
 		},
 	)
 	if err != nil {

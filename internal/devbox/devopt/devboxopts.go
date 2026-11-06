@@ -26,6 +26,7 @@ type ProcessComposeOpts struct {
 	ExtraFlags         []string
 	Background         bool
 	ProcessComposePort int
+	Verbose            bool
 }
 
 type GenerateOpts struct {

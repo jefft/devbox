@@ -74,6 +74,7 @@ type ProcessComposeOpts struct {
 	ExtraFlags         []string
 	Background         bool
 	ProcessComposePort int
+	Verbose            bool
 }
 
 func newGlobalProcessComposeConfig() *globalProcessComposeConfig {
@@ -202,7 +203,9 @@ func StartProcessManager(
 	if processComposeConfig.Background {
 		flags = append(flags, "-t=false")
 		cmd := exec.Command(processComposeConfig.BinPath, flags...)
-		return runProcessManagerInBackground(cmd, config, port, projectDir, w)
+		return runProcessManagerInBackground(
+			cmd, config, port, projectDir, w, processComposeConfig.Verbose,
+		)
 	}
 
 	cmd := exec.Command(processComposeConfig.BinPath, flags...)
@@ -262,7 +265,14 @@ func removeGlobalInstance(projectDir string, pid int) error {
 	return writeGlobalProcessComposeJSON(config, configFile)
 }
 
-func runProcessManagerInBackground(cmd *exec.Cmd, config *globalProcessComposeConfig, port int, projectDir string, w io.Writer) error {
+func runProcessManagerInBackground(
+	cmd *exec.Cmd,
+	config *globalProcessComposeConfig,
+	port int,
+	projectDir string,
+	w io.Writer,
+	verbose bool,
+) error {
 	logdir := filepath.Join(projectDir, processComposeLogfile)
 	logfile, err := os.OpenFile(logdir, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_TRUNC, 0o664)
 	if err != nil {
@@ -283,8 +293,7 @@ func runProcessManagerInBackground(cmd *exec.Cmd, config *globalProcessComposeCo
 		return fmt.Errorf("failed to start process-compose: %w", err)
 	}
 
-	fmt.Fprintf(w, "Process-compose is now running on port %d\n", port)
-	fmt.Fprintf(w, "To stop your services, run `devbox services stop`\n")
+	reportBackgroundProcessManagerStartup(w, port, verbose)
 
 	projectConfig := instance{
 		Pid:  cmd.Process.Pid,
@@ -299,6 +308,13 @@ func runProcessManagerInBackground(cmd *exec.Cmd, config *globalProcessComposeCo
 	}
 
 	return nil
+}
+
+func reportBackgroundProcessManagerStartup(w io.Writer, port int, verbose bool) {
+	if verbose {
+		fmt.Fprintf(w, "Process-compose is now running on port %d\n", port)
+	}
+	fmt.Fprintln(w, "To stop your services, run `devbox services stop`")
 }
 
 func StopProcessManager(ctx context.Context, projectDir string, w io.Writer) error {

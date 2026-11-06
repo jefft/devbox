@@ -97,7 +97,7 @@ func TestWaitForServiceStartupStreamsDelayedHooksExactlyOnce(t *testing.T) {
 	if requests.Load() != int32(len(snapshots)) {
 		t.Fatalf("returned before delayed hooks completed: %d polls", requests.Load())
 	}
-	want := "[nginx] http://localhost:8080\n[project] Project is ready\n[nginx] Hook stderr\n"
+	want := "http://localhost:8080\nProject is ready\nHook stderr\n"
 	if output.String() != want {
 		t.Fatalf("hook output = %q, want %q", output.String(), want)
 	}
@@ -145,8 +145,8 @@ func TestWaitForServiceStartupPreservesPartialOutputOnDeadline(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("startup error = %v, want deadline exceeded", err)
 	}
-	if output.String() != "[nginx] URL before slow hook\n" {
-		t.Fatalf("lost or duplicated partial hook output: %q", output.String())
+	if output.String() != "URL before slow hook\n" {
+		t.Fatalf("lost or duplicated partial output: %q", output.String())
 	}
 	if requests.Load() < 2 {
 		t.Fatal("did not wait for the slow hook after services became ready")

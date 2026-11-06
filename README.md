@@ -174,12 +174,12 @@ the full list of commands.
 After a background `devbox services up -b`, this fork prints process-compose
 startup hook output in the invoking terminal: Devbox waits up to ten seconds in
 total for the API, service readiness, and the startup hooks (including the
-project-level `on_ready` hook). Each hook line is printed once with its origin
-— `[<service>] ...` for a service hook, `[project] ...` for a project-level
-hook. Hook lines are only actual hook stdout/stderr and hook-failure notices;
-normal service output stays in the logs. A ten-second timeout produces a
-warning — printing whatever hook output was collected — without turning a
-successful service launch into a failure.
+project-level `on_ready` hook). Hook stdout/stderr is printed once, without a
+prefix, so messages can align directly. Service names remain available in each
+service hook's `PC_PROCESS_NAME` environment variable. Hook lines are only
+actual hook output and hook-failure notices; normal service output stays in the
+logs. A ten-second timeout produces a warning — printing whatever hook output
+was collected — without turning a successful service launch into a failure.
 
 Foreground sessions already display hooks in the TUI, so detaching prints
 nothing. Startup events that fire after the background command has returned
@@ -190,6 +190,10 @@ the startup hook history.
 Hook messages are best-effort. Configure a readiness probe or `ready_log_line`
 for servers that take time to bind; ports are included only when a hook chooses
 to print them (for example from `PC_TCP_PORTS`).
+
+Normal `devbox services up -b` omits the process-compose management API port;
+pass `--verbose` to print it. This is the manager's API port, not an
+application service's listening port.
 
 To inspect listening ports at any time, run `process-compose process ports
 <service>` against the running manager, or use the TUI's process-info dialog.

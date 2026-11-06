@@ -4,6 +4,7 @@
 package services
 
 import (
+	"bytes"
 	"io"
 	"os/exec"
 	"testing"
@@ -66,6 +67,32 @@ func TestRunProcessManagerInForegroundRemovesInstanceOnError(t *testing.T) {
 			defer configFile.Close()
 			if _, ok := readGlobalProcessComposeJSON(configFile).Instances[projectDir]; ok {
 				t.Errorf("instance for %s was not removed from global config", projectDir)
+			}
+		})
+	}
+}
+
+func TestReportBackgroundProcessManagerStartup(t *testing.T) {
+	for _, testCase := range []struct {
+		name    string
+		verbose bool
+		want    string
+	}{
+		{
+			name: "quiet",
+			want: "To stop your services, run `devbox services stop`\n",
+		},
+		{
+			name:    "verbose",
+			verbose: true,
+			want:    "Process-compose is now running on port 1234\nTo stop your services, run `devbox services stop`\n",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			var output bytes.Buffer
+			reportBackgroundProcessManagerStartup(&output, 1234, testCase.verbose)
+			if got := output.String(); got != testCase.want {
+				t.Fatalf("startup output = %q, want %q", got, testCase.want)
 			}
 		})
 	}

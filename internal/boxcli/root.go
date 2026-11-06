@@ -27,7 +27,8 @@ var (
 )
 
 type rootCmdFlags struct {
-	quiet bool
+	quiet   bool
+	verbose bool
 }
 
 func RootCmd() *cobra.Command {
@@ -92,6 +93,9 @@ func RootCmd() *cobra.Command {
 
 	command.PersistentFlags().BoolVarP(
 		&flags.quiet, "quiet", "q", false, "suppresses logs",
+	)
+	command.PersistentFlags().BoolVar(
+		&flags.verbose, "verbose", false, "displays additional information",
 	)
 	debugMiddleware.AttachToFlag(command.PersistentFlags(), "debug")
 	traceMiddleware.AttachToFlag(command.PersistentFlags(), "trace")

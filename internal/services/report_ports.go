@@ -78,11 +78,7 @@ func forwardStartupHooks(ctx context.Context, w io.Writer, client *http.Client, 
 		if line.Sequence <= after {
 			continue
 		}
-		scope := line.Process
-		if scope == "" {
-			scope = "project"
-		}
-		if _, err := fmt.Fprintf(w, "[%s] %s\n", scope, line.Message); err != nil {
+		if _, err := fmt.Fprintln(w, line.Message); err != nil {
 			return false, after, fmt.Errorf("writing service hook output: %w", err)
 		}
 		after = line.Sequence

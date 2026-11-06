@@ -44,3 +44,28 @@ func TestRootPersistentPreRunRunsForSubcommandsWithOwnHook(t *testing.T) {
 		t.Error("root's PersistentPreRun did not run: --quiet was ignored")
 	}
 }
+
+func TestVerbosePersistentFlagIsAvailableToServicesUp(t *testing.T) {
+	root := RootCmd()
+	services, _, err := root.Find([]string{"services"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	up, _, err := services.Find([]string{"up"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var gotVerbose bool
+	up.RunE = func(cmd *cobra.Command, _ []string) error {
+		gotVerbose, _ = cmd.Root().PersistentFlags().GetBool("verbose")
+		return nil
+	}
+	root.SetArgs([]string{"services", "up", "--verbose"})
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if !gotVerbose {
+		t.Fatal("services up did not receive --verbose")
+	}
+}

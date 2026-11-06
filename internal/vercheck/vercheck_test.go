@@ -10,9 +10,18 @@ import (
 	"testing"
 
 	"go.jetify.com/devbox/internal/envir"
+	"go.jetify.com/devbox/internal/ux"
 )
 
 func TestCheckVersion(t *testing.T) {
+	if err := ux.SetLogLevel("INFO"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := ux.SetLogLevel("WARN"); err != nil {
+			t.Error(err)
+		}
+	})
 	isDevBuild = false
 	t.Setenv(envir.XDGCacheHome, t.TempDir())
 

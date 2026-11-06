@@ -169,19 +169,30 @@ See the
 [CLI Reference](https://www.jetify.com/docs/devbox/cli-reference/devbox) for
 the full list of commands.
 
-### Service listening ports
+### Service listening ports and startup hooks
 
 This fork reports TCP ports after `devbox services up -b` starts its services,
 and after a foreground process-compose session detaches while leaving services
-running. Devbox waits up to ten seconds for the API and service readiness, then
-runs `process-compose process ports` for each running service, including
-dependencies and replicas. Port-query failures produce a warning without
-turning a successful service launch into a failure.
+running. Background launches also stream startup hook output: Devbox waits up
+to ten seconds in total for the API, service readiness, and the startup hooks
+(including the project-level `on_ready` hook), then runs `process-compose
+process ports` for each running service, including dependencies and replicas.
+Each hook line is printed once with its origin — `[<service>] ...` for a
+service hook, `[project] ...` for a project-level hook. Hook lines are only
+actual hook stdout/stderr and hook-failure notices; normal service output
+stays in the logs. Port-query failures and a ten-second timeout produce a
+warning — printing whatever hook output was collected — without turning a
+successful service launch into a failure.
 
-The report is a snapshot. Configure a readiness probe or `ready_log_line` for
-servers that take time to bind; without one, a process may be considered ready
-before its ports are open. The underlying command currently reports TCP only.
-Normal foreground sessions do not print ports after shutdown.
+Startup events that fire after the background command has returned, and all
+hook output in foreground sessions, remain in the process-compose logs
+(`.devbox/logs/compose.log`); Devbox never tails or replays them, and a later
+`devbox services attach` does not reprint the startup hook history.
+
+The port report is a snapshot. Configure a readiness probe or `ready_log_line`
+for servers that take time to bind; without one, a process may be considered
+ready before its ports are open. The underlying command currently reports TCP
+only. Normal foreground sessions do not print ports after shutdown.
 
 ## Join our Developer Community
 

@@ -290,4 +290,4 @@ tool (
 	mvdan.cc/gofumpt
 )
 
-replace github.com/f1bonacc1/process-compose => github.com/jefft/process-compose v0.0.0-20261106035902-d2c551b98c10
+replace github.com/f1bonacc1/process-compose => github.com/jefft/process-compose v0.0.0-20261106064435-773a02fa655b

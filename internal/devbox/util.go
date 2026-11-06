@@ -27,7 +27,7 @@ import (
 // library types internal/services decodes its responses into come from the
 // same source (TestProcessComposeRevMatchesGoMod). The full 40-character rev
 // keeps the flake reference immutable.
-const processComposeRev = "d2c551b98c10cc5caa7422686e5656979805b183"
+const processComposeRev = "773a02fa655b141b58a6b5dd784c24b5693feefa"
 
 const processComposeFlake = "github:jefft/process-compose/" + processComposeRev
 

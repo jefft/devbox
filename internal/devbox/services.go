@@ -281,8 +281,8 @@ func (d *Devbox) StartProcessManager(
 		return err
 	}
 	if services.ProcessManagerIsRunning(d.projectDir) {
-		if err := services.PrintServicePorts(ctx, d.stderr, d.projectDir, processComposeBinPath); err != nil {
-			fmt.Fprintf(d.stderr, "Warning: unable to report service ports: %s\n", err)
+		if err := services.PrintServiceStartup(ctx, d.stderr, d.projectDir, processComposeBinPath, processComposeOpts.Background); err != nil {
+			fmt.Fprintf(d.stderr, "Warning: unable to report service startup: %s\n", err)
 		}
 	}
 	return nil
